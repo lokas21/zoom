@@ -1,0 +1,8 @@
+# Jekyll configuration for GitHub Pages
+# Exclude source/build artifacts that don't need to be served
+exclude:
+  - requirements.txt
+  - src/
+  - config/
+  - "*.xlsx"
+  - ".github/"
