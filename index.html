@@ -368,7 +368,6 @@ function makeDatTrial(imgData, phase, trialNum) {
     const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));
     window._datState = { catKeys, drawings };
 
-    /* IMPORTANT : on utilise TOUJOURS la même phrase (pas de version "ÉTAT ACTUEL") */
     const header =
       'Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?';
 
@@ -508,6 +507,24 @@ const preload = {
   message: '<p style="color:#fff">Chargement des images…</p>',
 };
 
+/* ----- Question sexe ----- */
+const sexeQuestion = {
+  type: jsPsychSurveyHtmlForm,
+  html: `
+    <div style="color:#fff; max-width:600px; margin:0 auto; font-size:18px; line-height:1.6; padding:20px;">
+      <p><strong>Quel est votre sexe ?</strong></p>
+      <label><input type="radio" name="sexe" value="Femme" required> Femme</label><br><br>
+      <label><input type="radio" name="sexe" value="Homme"> Homme</label><br><br>
+      <label><input type="radio" name="sexe" value="Autre"> Autre</label><br><br>
+      <label><input type="radio" name="sexe" value="Ne souhaite pas répondre"> Ne souhaite pas répondre</label>
+    </div>
+  `,
+  button_label: "Continuer",
+  on_finish: function(data){
+    data.phase = "demographics";
+  }
+};
+
 /* ----- Slides d'introduction (1 à 6) ----- */
 const introSlides = {
   timeline: [
@@ -538,34 +555,15 @@ shuffledImages.forEach((imgData, idx) => {
   const trialNum = idx + 1;
 
   trialTimeline.push(
-    // 1. Fixation 2s
     makeFixation(),
-
-    // 2. Image originale 8s
     makeImageTrial(imgData, trialNum),
-
-    // 3. Émotions (pré-zoom)
     makeEmotionTrial(imgData, trialNum, 'pre_zoom'),
-
-    // 4. DAT pré-zoom
     makeDatTrial(imgData, 'pre_zoom', trialNum),
-
-    // 5. Situation pré-zoom
     makeSituationTrial(imgData, 'pre_zoom', trialNum),
-
-    // 6. Fixation 2s
     makeFixation(),
-
-    // 7. Image zoomée 8s
     makeZoomTrial(imgData, trialNum),
-
-    // 8. Émotions (post-zoom)  ✅ AJOUTÉ
     makeEmotionTrial(imgData, trialNum, 'post_zoom'),
-
-    // 9. DAT post-zoom
     makeDatTrial(imgData, 'post_zoom', trialNum),
-
-    // 10. Situation post-zoom
     makeSituationTrial(imgData, 'post_zoom', trialNum),
   );
 });
@@ -581,6 +579,7 @@ const goodbye = {
 /* ----- Timeline finale ----- */
 jsPsych.run([
   preload,
+  sexeQuestion,
   introSlides,
   ...trialTimeline,
   goodbye,
@@ -621,5 +620,4 @@ function saveData() {
 </script>
 </body>
 </html>
-
 
