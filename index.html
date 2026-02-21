@@ -8,7 +8,6 @@
   <script src="https://unpkg.com/jspsych@7.3.4"></script>
   <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-canvas-keyboard-response@1.1.3"></script>
-  <script src="https://unpkg.com/@jspsych/plugin-survey-slider@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
   <!-- jsPsych CSS -->
@@ -23,11 +22,17 @@
     /* ---- Croix de fixation ---- */
     .fixation { font-size: 80px; color: #ffffff; }
 
-    /* ---- Modules sliders (Émotion / Situation) ---- */
-    .jspsych-survey-slider-preamble { color: #ffffff; font-size: 20px; margin-bottom: 20px; }
-    .jspsych-survey-slider-question { color: #ffffff; }
-    .jspsych-survey-slider-opt-label { color: #cccccc; }
-    .jspsych-survey-slider-response input[type="range"] { width: 600px; }
+    /* ---- Modules Émotion / Situation (sliders HTML) ---- */
+    .module-container { color:#fff; max-width:700px; margin:0 auto; padding:10px; }
+    .module-header { font-size:18px; font-weight:bold; margin-bottom:20px; line-height:1.5; }
+    .emo-row, .sit-row { display:flex; align-items:center; margin-bottom:18px; gap:20px; }
+    .emo-label { font-size:16px; font-weight:bold; width:120px; flex-shrink:0; }
+    .emo-slider-wrap, .sit-slider-wrap { flex:1; }
+    .sit-question { font-size:15px; margin-bottom:8px; }
+    .sit-row { flex-direction:column; align-items:flex-start; }
+    .emo-slider-wrap input[type="range"], .sit-slider-wrap input[type="range"] { width:100%; accent-color:#aaa; }
+    .slider-tick-labels { display:flex; justify-content:space-between; font-size:12px; color:#aaa; margin-top:3px; }
+    .error-msg { color:#ff6666; font-size:14px; margin-top:10px; }
     .jspsych-btn { background:#555; color:#fff; border:1px solid #aaa; padding:10px 30px;
                    font-size:16px; cursor:pointer; margin-top:20px; border-radius:4px; }
     .jspsych-btn:hover { background:#777; }
@@ -330,36 +335,37 @@ function makeZoomTrial(imgData, trialNum) {
 
 /* ---- Module Émotion (6 sliders, AUTRE toujours dernier) ---- */
 function makeEmotionTrial(imgData, trialNum) {
-  // L'ordre est recalculé dynamiquement à chaque appel de questions()
-  let _order = [];
+  function buildHtml() {
+    const coreShuf = shuffle([0,1,2,3,4]);
+    const order = [...coreShuf, 5];
+    window._emoOrder = order;
+    const rows = order.map(i => {
+      const def = EMOTION_DEFS[i];
+      return '<div class="emo-row"><div class="emo-label">' + def.label + '</div>' +
+        '<div class="emo-slider-wrap"><input type="range" name="' + def.name + '" class="emo-slider" min="0" max="100" step="1" value="0">' +
+        '<div class="slider-tick-labels"><span>Pas du tout</span><span>Extrêmement</span></div></div></div>';
+    }).join('');
+    return '<div class="module-container"><p class="module-header">Pendant que vous regardiez l\'image, dans quelle mesure avez-vous ressenti chacune des émotions suivantes ?</p>' + rows +
+      '<div id="emo-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div></div>';
+  }
   return {
-    type     : jsPsychSurveySlider,
-    preamble : '<p style="color:#fff;font-size:18px;margin-bottom:16px;">' +
-               'Pendant que vous regardiez l\'image, dans quelle mesure avez-vous ressenti chacune des émotions suivantes ?</p>',
-    questions: function() {
-      // Shuffle JOIE..PEUR (indices 0-4), AUTRE (indice 5) toujours dernier
-      const coreShuf = shuffle([0,1,2,3,4]);
-      _order = [...coreShuf, 5];
-      return _order.map(i => ({
-        prompt       : `<span style="color:#fff;font-size:17px;font-weight:bold">${EMOTION_DEFS[i].label}</span>`,
-        labels       : ['Pas du tout','','','','','Extrêmement'],
-        min          : 0,
-        max          : 100,
-        step         : 1,
-        start        : 0,
-        name         : EMOTION_DEFS[i].name,
-        slider_width : 600,
-      }));
+    type: jsPsychSurveyHtmlForm,
+    html: buildHtml,
+    button_label: 'Continuer',
+    on_load: function() {
+      const moved = new Set();
+      document.querySelectorAll('.emo-slider').forEach(function(s) {
+        s.addEventListener('input', function() { moved.add(s.name); });
+      });
+      const btn = document.getElementById('jspsych-survey-html-form-next');
+      if (btn) btn.addEventListener('click', function(e) {
+        if (moved.size < 6) { e.preventDefault(); e.stopImmediatePropagation(); document.getElementById('emo-error').style.display='block'; }
+      }, true);
     },
-    require_movement: true,
-    button_label    : 'Continuer',
-    on_finish : function(data) {
-      data.phase       = 'emotion';
-      data.trial_num   = trialNum;
-      data.image_id    = imgData.image_id;
-      data.emotion_type= imgData.emotion;
-      data.emotion_order = _order.map(i => EMOTION_DEFS[i].name).join(',');
-      // Les réponses sont dans data.response : { joie: val, ... }
+    on_finish: function(data) {
+      data.phase = 'emotion'; data.trial_num = trialNum;
+      data.image_id = imgData.image_id; data.emotion_type = imgData.emotion;
+      data.emotion_order = (window._emoOrder||[]).map(function(i){ return EMOTION_DEFS[i].name; }).join(',');
     },
   };
 }
@@ -438,31 +444,38 @@ function makeDatTrial(imgData, phase, trialNum) {
   };
 }
 
-/* ---- Module Situation (3 sliders, ordre aléatoire) ---- */
+/* ---- Module Situation (3 sliders HTML, ordre aleatoire) ---- */
 function makeSituationTrial(imgData, phase, trialNum) {
-  let _order = [];
+  function buildHtml() {
+    const order = shuffle([0,1,2]);
+    window._sitOrder = order;
+    const rows = order.map(i => {
+      const def = SIT_DEFS[i];
+      return '<div class="sit-row"><p class="sit-question">' + def.text + '</p>' +
+        '<div class="sit-slider-wrap"><input type="range" name="' + def.name + '" class="sit-slider" min="0" max="100" step="1" value="0">' +
+        '<div class="slider-tick-labels"><span>' + def.left + '</span><span>' + def.right + '</span></div></div></div>';
+    }).join('');
+    return '<div class="module-container"><p class="module-header">En vous projetant dans la situation représentée par l\'image…</p>' + rows +
+      '<div id="sit-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div></div>';
+  }
   return {
-    type     : jsPsychSurveySlider,
-    preamble : '<p style="color:#fff;font-size:18px;margin-bottom:16px;">' +
-               'En vous projetant dans la situation représentée par l\'image…</p>',
-    questions: function() {
-      _order = shuffle([0,1,2]);
-      return _order.map(i => ({
-        prompt: `<span style="color:#fff;font-size:16px">${SIT_DEFS[i].text}</span>`,
-        labels : [SIT_DEFS[i].left,'','','','',SIT_DEFS[i].right],
-        min    : 0, max: 100, step: 1, start: 0,
-        name   : SIT_DEFS[i].name,
-        slider_width: 600,
-      }));
+    type: jsPsychSurveyHtmlForm,
+    html: buildHtml,
+    button_label: 'Continuer',
+    on_load: function() {
+      const moved = new Set();
+      document.querySelectorAll('.sit-slider').forEach(function(s) {
+        s.addEventListener('input', function() { moved.add(s.name); });
+      });
+      const btn = document.getElementById('jspsych-survey-html-form-next');
+      if (btn) btn.addEventListener('click', function(e) {
+        if (moved.size < 3) { e.preventDefault(); e.stopImmediatePropagation(); document.getElementById('sit-error').style.display='block'; }
+      }, true);
     },
-    require_movement: true,
-    button_label    : 'Continuer',
-    on_finish : function(data) {
-      data.phase        = 'situation_' + phase;
-      data.trial_num    = trialNum;
-      data.image_id     = imgData.image_id;
-      data.emotion_type = imgData.emotion;
-      data.sit_order    = _order.map(i => SIT_DEFS[i].name).join(',');
+    on_finish: function(data) {
+      data.phase = 'situation_' + phase; data.trial_num = trialNum;
+      data.image_id = imgData.image_id; data.emotion_type = imgData.emotion;
+      data.sit_order = (window._sitOrder||[]).map(function(i){ return SIT_DEFS[i].name; }).join(',');
     },
   };
 }
