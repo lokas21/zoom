@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <title>YC5 – Expérience</title>
 
-  <!-- jsPsych 7 — URLs officielles (sans chemin explicite) -->
+  <!-- jsPsych 7 -->
   <script src="https://unpkg.com/jspsych@7.3.4"></script>
   <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-canvas-keyboard-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
-  <!-- jsPsych CSS -->
+
   <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
 
   <style>
@@ -22,80 +22,177 @@
     /* ---- Croix de fixation ---- */
     .fixation { font-size: 80px; color: #ffffff; }
 
-    /* ---- Modules Émotion / Situation (sliders HTML) ---- */
-    .module-container { color:#fff; max-width:700px; margin:0 auto; padding:10px; }
-    .module-header { font-size:18px; font-weight:bold; margin-bottom:20px; line-height:1.5; }
-    .emo-row, .sit-row { display:flex; align-items:center; margin-bottom:18px; gap:20px; }
-    .emo-label { font-size:16px; font-weight:bold; width:120px; flex-shrink:0; }
-    .emo-slider-wrap, .sit-slider-wrap { flex:1; }
-    .sit-question { font-size:15px; margin-bottom:8px; }
-    .sit-row { flex-direction:column; align-items:flex-start; }
-    .emo-slider-wrap input[type="range"], .sit-slider-wrap input[type="range"] { width:100%; accent-color:#aaa; }
-    .slider-tick-labels { display:flex; justify-content:space-between; font-size:12px; color:#aaa; margin-top:3px; }
-    .error-msg { color:#ff6666; font-size:14px; margin-top:10px; }
-    .jspsych-btn { background:#555; color:#fff; border:1px solid #aaa; padding:10px 30px;
-                   font-size:16px; cursor:pointer; margin-top:20px; border-radius:4px; }
+    /* ======================================================================
+       MISE EN PAGE UNIFIÉE : sliders mêmes longueurs + aligné à gauche
+       ====================================================================== */
+    :root{
+      --form-max-width: 900px;  /* largeur de la colonne */
+      --slider-width: 820px;    /* longueur identique pour tous les sliders */
+    }
+
+    /* Conteneurs principaux : colonne centrée, contenu à gauche */
+    .module-container,
+    #dat-container{
+      max-width: var(--form-max-width);
+      margin: 0 auto;
+      padding: 20px 24px;
+      color:#fff;
+      text-align: left;          /* ✅ aligné à gauche */
+      box-sizing: border-box;
+    }
+
+    /* Titres (garde centré ; si tu veux à gauche, remplace center par left) */
+    .module-header,
+    #dat-container .dat-header{
+      text-align: center;
+      font-size:18px;
+      font-weight:bold;
+      margin-bottom:20px;
+      line-height:1.5;
+    }
+
+    /* ---- Bouton ---- */
+    .jspsych-btn {
+      background:#555; color:#fff; border:1px solid #aaa; padding:10px 30px;
+      font-size:16px; cursor:pointer; margin-top:20px; border-radius:4px;
+    }
     .jspsych-btn:hover { background:#777; }
 
-    /* ---- Module DAT ---- */
-    #dat-container { color: #ffffff; text-align: center; max-width: 1000px; margin: 0 auto; }
-    #dat-container .dat-header { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-    #dat-container .dat-subheader { font-size: 15px; margin-bottom: 24px; color: #cccccc; }
-    .dat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px 60px;
-                justify-items: center; margin-bottom: 20px; }
-    .dat-cell { display: flex; flex-direction: column; align-items: center; width: 300px; }
-    .dat-cell img { max-width: 280px; max-height: 200px; object-fit: contain;
-                    border: 2px solid #888; background: #222; }
-    .dat-cell .dat-slider-wrap { width: 260px; margin-top: 12px; }
-    .dat-cell input[type="range"] { width: 100%; accent-color: #aaa; }
-    .dat-tick-labels { display: flex; justify-content: space-between;
-                       font-size: 12px; color: #aaa; margin-top: 2px; }
+    /* ---- Erreurs ---- */
+    .error-msg { color:#ff6666; font-size:14px; margin-top:10px; }
+
+    /* ---- SLIDERS : largeur uniforme ---- */
+    .emo-slider-wrap,
+    .sit-slider-wrap,
+    .dat-cell .dat-slider-wrap{
+      width: var(--slider-width);
+      max-width: 100%;
+    }
+
+    .emo-slider-wrap input[type="range"],
+    .sit-slider-wrap input[type="range"],
+    .dat-cell input[type="range"]{
+      width: 100%;
+      display: block;
+      accent-color:#aaa;
+    }
+
+    .slider-tick-labels,
+    .dat-tick-labels{
+      width: 100%;
+      display:flex;
+      justify-content:space-between;
+      gap: 16px;
+      font-size:12px;
+      color:#aaa;
+      margin-top:6px;
+    }
+
+    .slider-tick-labels span,
+    .dat-tick-labels span{
+      white-space: normal; /* ✅ évite le collage */
+    }
+
+    /* ---- ÉMOTIONS : label + slider alignés proprement ---- */
+    .emo-row{
+      display:flex;
+      align-items:center;
+      gap:20px;
+      margin-bottom:18px;
+    }
+    .emo-label{
+      font-size:16px;
+      font-weight:bold;
+      width:140px;      /* fixe => sliders alignés */
+      flex: 0 0 140px;
+    }
+
+    /* ---- SITUATION : question puis slider (cohérent) ---- */
+    .sit-row{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:26px;
+    }
+    .sit-question{
+      font-size:18px;
+      line-height:1.4;
+      margin:0;
+    }
+
+    /* ---- DAT ---- */
+    #dat-container { text-align: left; }
+    #dat-container .dat-subheader { font-size: 15px; margin-bottom: 24px; color: #cccccc; text-align:center; }
+
+    .dat-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px 60px;
+      justify-items: start;     /* ✅ cases alignées à gauche */
+      margin-bottom: 20px;
+    }
+
+    .dat-cell{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;   /* ✅ image+slider à gauche */
+      width:auto;
+    }
+
+    .dat-cell img{
+      max-width: 280px;
+      max-height: 200px;
+      object-fit: contain;
+      border: 2px solid #888;
+      background: #222;
+    }
+
     #dat-error { color: #ff6666; font-size: 15px; margin-top: 10px; display: none; }
 
-    /* ---- Canvas plein écran ---- */
+    /* ---- Responsive ---- */
+    @media (max-width: 900px){
+      :root{
+        --slider-width: 92vw;
+        --form-max-width: 96vw;
+      }
+      .emo-label{ width:110px; flex: 0 0 110px; }
+      .dat-grid{ grid-template-columns: 1fr; }
+    }
+
+    /* ---- Canvas ---- */
     canvas { display: block; margin: 0 auto; }
   </style>
 </head>
+
 <body>
 <script>
 "use strict";
 
 /* ==========================================================================
-   SECTION 1 — CONFIGURATION  (modifiez ici selon vos fichiers)
-   ==========================================================================
-   Structure de dossiers attendue :
-   ├── YC5_experiment.html      ← ce fichier
-   ├── images/
-   │   ├── sadness/             ← toutes les images sadness_*.jpg/png
-   │   └── hope/                ← toutes les images hope_*.jpg/png
-   └── DAT/                 ← dossier avec les 8 dessins DAT (.png)
-       ├── ApR1.png, ApR2.png, ApT1.png, ApT2.png
-       └── AvR1.png, AvR2.png, AvT1.png, AvT2.png
-*/
+   SECTION 1 — CONFIG
+   ========================================================================== */
 
 const CFG = {
-  IMG_BASE    : 'images/',          // chemin relatif vers le dossier images
-  ZOOM_FACTOR : 1.5,                // facteur de zoom (ne pas changer sauf si souhaité)
-  FIX_MS      : 2000,               // durée fixation (ms)
-  IMG_MS      : 8000,               // durée présentation image (ms)
+  IMG_BASE    : 'images/',
+  ZOOM_FACTOR : 1.5,
+  FIX_MS      : 2000,
+  IMG_MS      : 8000,
   BG_COLOR    : '#3c3c3c',
 };
 
-/* ---------- Dessins DAT : ajoutez autant de fichiers que vous en avez ------
-   Pour chaque dimension (dat1..dat4), listez vos fichiers de dessins.
-   Un dessin aléatoire est sélectionné par trial, dans un ordre aléatoire
-   des 4 dimensions.                                                         */
+/* Dessins DAT (selon ton arborescence confirmée) */
 const DAT_DRAWINGS = {
-  approach      : [ 'dat_images/dat1/ApR1.png', 'dat_images/dat1/ApR2.png' ],
-  confrontation : [ 'dat_images/dat2/ApT1.png', 'dat_images/dat2/ApT2.png' ],
-  withdraw       : [ 'dat_images/dat3/AvR1.png', 'dat_images/dat3/AvR2.png' ],
-  freeze      : [ 'dat_images/dat4/AvT1.png', 'dat_images/dat4/AvT2.png' ],
+  approach      : [ 'dat_images/dat1/ApR1.png', 'dat_images/dat1/ApR2.png' ], // joie
+  confrontation : [ 'dat_images/dat2/ApT1.png', 'dat_images/dat2/ApT2.png' ], // colère
+  withdraw      : [ 'dat_images/dat3/AvR1.png', 'dat_images/dat3/AvR2.png' ], // tristesse
+  freeze        : [ 'dat_images/dat4/AvT1.png', 'dat_images/dat4/AvT2.png' ], // peur
 };
 
 /* ==========================================================================
-   SECTION 2 — LISTE D'IMAGES  (générée automatiquement depuis emotion_file_8_essais.xlsx)
+   SECTION 2 — IMAGE_LIST
    ==========================================================================
-   Chaque objet : { emotion, image_id, filename, folder, zoomX, zoomY }
+  Chaque objet : { emotion, image_id, filename, folder, zoomX, zoomY }
    zoomX / zoomY sont en pixels dans l'image originale.                      */
 
 const IMAGE_LIST = [
@@ -185,19 +282,19 @@ const IMAGE_LIST = [
    SECTION 3 — UTILITAIRES
    ========================================================================== */
 
-/** Retourne l'image en cache navigateur (après préchargement jsPsych) */
 function getCachedImage(src) {
   const img = new Image();
-  img.src = src;   // instantané depuis le cache navigateur
+  img.src = src;
   return img;
 }
 
-/** Dessine une image centrée sur canvas, maintenant le ratio */
 function drawImageCentered(canvas, imgSrc) {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = CFG.BG_COLOR;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   const img = getCachedImage(imgSrc);
+
   const go = () => {
     const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
     const dw = img.naturalWidth  * scale;
@@ -206,32 +303,35 @@ function drawImageCentered(canvas, imgSrc) {
     const dy = (canvas.height - dh) / 2;
     ctx.drawImage(img, dx, dy, dw, dh);
   };
-  if (img.complete && img.naturalWidth) { go(); }
-  else { img.onload = go; }
+
+  if (img.complete && img.naturalWidth) go();
+  else img.onload = go;
 }
 
-/** Dessine l'image zoomée (même logique que MATLAB showZoomedTexture) */
 function drawImageZoomed(canvas, imgSrc, zoomX, zoomY) {
   const ctx  = canvas.getContext('2d');
   const zf   = CFG.ZOOM_FACTOR;
   ctx.fillStyle = CFG.BG_COLOR;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   const img = getCachedImage(imgSrc);
+
   const go = () => {
     const IW = img.naturalWidth, IH = img.naturalHeight;
     const srcW = IW / zf, srcH = IH / zf;
     let srcX = zoomX - srcW / 2;
     let srcY = zoomY - srcH / 2;
-    // Clamp aux bords de l'image
+
     srcX = Math.max(0, Math.min(srcX, IW - srcW));
     srcY = Math.max(0, Math.min(srcY, IH - srcH));
+
     ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
   };
-  if (img.complete && img.naturalWidth) { go(); }
-  else { img.onload = go; }
+
+  if (img.complete && img.naturalWidth) go();
+  else img.onload = go;
 }
 
-/** Fisher-Yates shuffle */
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -241,16 +341,14 @@ function shuffle(arr) {
   return a;
 }
 
-/** Sélectionne un élément aléatoire d'un tableau */
 function randomPick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
 /* ==========================================================================
-   SECTION 4 — CONSTRUCTEURS DE TRIALS
+   SECTION 4 — DEFINITIONS
    ========================================================================== */
 
-/* ---- Définitions des émotions ---- */
 const EMOTION_DEFS = [
   { name: 'joie',      label: 'JOIE' },
   { name: 'colere',    label: 'COLÈRE' },
@@ -260,29 +358,31 @@ const EMOTION_DEFS = [
   { name: 'autre',     label: 'AUTRE' },
 ];
 
-/* ---- Définitions des questions Situation ---- */
 const SIT_DEFS = [
   {
     name  : 'sit_controle',
-    text  : 'Dans quelle mesure pourriez-vous influencer ce qui s\'y passe ?',
-    left  : 'Je n\'aurais aucun contrôle sur la situation',
-    right : 'J\'aurais beaucoup de contrôle sur la situation',
+    text  : "Dans quelle mesure pourriez-vous influencer ce qui s'y passe ?",
+    left  : "Je n'aurais aucun contrôle sur la situation",
+    right : "J'aurais beaucoup de contrôle sur la situation",
   },
   {
     name  : 'sit_aide',
-    text  : 'Vous seriez-vous senti(e) aidé(e) ou bloqué(e) dans l\'accomplissement de ce qui est important pour vous ?',
-    left  : 'Très bloqué(e)',
-    right : 'Très aidé(e)',
+    text  : "Vous seriez-vous senti(e) aidé(e) ou bloqué(e) dans l'accomplissement de ce qui est important pour vous ?",
+    left  : "Très bloqué(e)",
+    right : "Très aidé(e)",
   },
   {
     name  : 'sit_consequences',
-    text  : 'Dans quelle mesure ce qui s\'y passe aurait-il des conséquences positives ou négatives pour ce qui est important pour vous ?',
-    left  : 'Conséquences très négatives',
-    right : 'Conséquences très positives',
+    text  : "Dans quelle mesure ce qui s'y passe aurait-il des conséquences positives ou négatives pour ce qui est important pour vous ?",
+    left  : "Conséquences très négatives",
+    right : "Conséquences très positives",
   },
 ];
 
-/* ---- Fixation ---- */
+/* ==========================================================================
+   SECTION 5 — TRIALS
+   ========================================================================== */
+
 function makeFixation() {
   return {
     type    : jsPsychHtmlKeyboardResponse,
@@ -293,94 +393,107 @@ function makeFixation() {
   };
 }
 
-/* ---- Image normale (canvas centré) ---- */
+/* ✅ canvas_size = [largeur, hauteur] */
 function makeImageTrial(imgData, trialNum) {
   const src = CFG.IMG_BASE + imgData.folder + '/' + imgData.filename;
   return {
     type        : jsPsychCanvasKeyboardResponse,
-    canvas_size : [window.screen.height, window.screen.width],
+    canvas_size : [window.innerWidth, window.innerHeight],
     stimulus    : (canvas) => drawImageCentered(canvas, src),
     choices     : 'NO_KEYS',
     trial_duration: CFG.IMG_MS,
     data        : {
-      phase      : 'image_normal',
-      trial_num  : trialNum,
-      image_id   : imgData.image_id,
+      phase       : 'image_normal',
+      trial_num   : trialNum,
+      image_id    : imgData.image_id,
       emotion_type: imgData.emotion,
     },
   };
 }
 
-/* ---- Image zoomée (canvas) ---- */
+/* ✅ canvas_size = [largeur, hauteur] */
 function makeZoomTrial(imgData, trialNum) {
   const src = CFG.IMG_BASE + imgData.folder + '/' + imgData.filename;
   return {
     type        : jsPsychCanvasKeyboardResponse,
-    canvas_size : [window.screen.height, window.screen.width],
+    canvas_size : [window.innerWidth, window.innerHeight],
     stimulus    : (canvas) => drawImageZoomed(canvas, src, imgData.zoomX, imgData.zoomY),
     choices     : 'NO_KEYS',
     trial_duration: CFG.IMG_MS,
     data        : {
-      phase      : 'image_zoom',
-      trial_num  : trialNum,
-      image_id   : imgData.image_id,
+      phase       : 'image_zoom',
+      trial_num   : trialNum,
+      image_id    : imgData.image_id,
       emotion_type: imgData.emotion,
-      zoomX      : imgData.zoomX,
-      zoomY      : imgData.zoomY,
+      zoomX       : imgData.zoomX,
+      zoomY       : imgData.zoomY,
     },
   };
 }
 
-/* ---- Module Émotion (6 sliders, AUTRE toujours dernier) ---- */
 function makeEmotionTrial(imgData, trialNum) {
   function buildHtml() {
     const coreShuf = shuffle([0,1,2,3,4]);
-    const order = [...coreShuf, 5];
+    const order = [...coreShuf, 5];   // AUTRE toujours dernier
     window._emoOrder = order;
+
     const rows = order.map(i => {
       const def = EMOTION_DEFS[i];
-      return '<div class="emo-row"><div class="emo-label">' + def.label + '</div>' +
-        '<div class="emo-slider-wrap"><input type="range" name="' + def.name + '" class="emo-slider" min="0" max="100" step="1" value="0">' +
-        '<div class="slider-tick-labels"><span>Pas du tout</span><span>Extrêmement</span></div></div></div>';
+      return `
+        <div class="emo-row">
+          <div class="emo-label">${def.label}</div>
+          <div class="emo-slider-wrap">
+            <input type="range" name="${def.name}" class="emo-slider" min="0" max="100" step="1" value="0">
+            <div class="slider-tick-labels"><span>Pas du tout</span><span>Extrêmement</span></div>
+          </div>
+        </div>`;
     }).join('');
-    return '<div class="module-container"><p class="module-header">Pendant que vous regardiez l\'image, dans quelle mesure avez-vous ressenti chacune des émotions suivantes ?</p>' + rows +
-      '<div id="emo-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div></div>';
+
+    return `
+      <div class="module-container">
+        <p class="module-header">Pendant que vous regardiez l'image, dans quelle mesure avez-vous ressenti chacune des émotions suivantes ?</p>
+        ${rows}
+        <div id="emo-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div>
+      </div>`;
   }
+
   return {
     type: jsPsychSurveyHtmlForm,
     html: buildHtml,
     button_label: 'Continuer',
     on_load: function() {
       const moved = new Set();
-      document.querySelectorAll('.emo-slider').forEach(function(s) {
-        s.addEventListener('input', function() { moved.add(s.name); });
+      document.querySelectorAll('.emo-slider').forEach(s => {
+        s.addEventListener('input', () => moved.add(s.name));
       });
       const btn = document.getElementById('jspsych-survey-html-form-next');
       if (btn) btn.addEventListener('click', function(e) {
-        if (moved.size < 6) { e.preventDefault(); e.stopImmediatePropagation(); document.getElementById('emo-error').style.display='block'; }
+        if (moved.size < 6) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          document.getElementById('emo-error').style.display = 'block';
+        }
       }, true);
     },
     on_finish: function(data) {
-      data.phase = 'emotion'; data.trial_num = trialNum;
-      data.image_id = imgData.image_id; data.emotion_type = imgData.emotion;
-      data.emotion_order = (window._emoOrder||[]).map(function(i){ return EMOTION_DEFS[i].name; }).join(',');
+      data.phase = 'emotion';
+      data.trial_num = trialNum;
+      data.image_id = imgData.image_id;
+      data.emotion_type = imgData.emotion;
+      data.emotion_order = (window._emoOrder||[]).map(i => EMOTION_DEFS[i].name).join(',');
     },
   };
 }
 
-/* ---- Module DAT (4 dessins + 4 sliders 1-5, grille 2x2) ---- */
 function makeDatTrial(imgData, phase, trialNum) {
-  // Construit le HTML du formulaire DAT avec dessins et sliders
   function buildDatHtml() {
-    const catKeys  = shuffle(['approach','confrontation','freeze','withdraw']);  // ordre aléatoire des 4 dim.
-    const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));  // 1 dessin par dim.
-
-    // Stocke pour récupération dans on_finish
+    const catKeys  = shuffle(['approach','confrontation','freeze','withdraw']);
+    const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));
     window._datState = { catKeys, drawings };
 
     const header = phase === 'pre_zoom'
-      ? 'Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?'
-      : 'En vous basant sur votre ÉTAT ACTUEL, dans quelle mesure avez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?';
+      ? "Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d'agir comme la personne représentée sur chacun de ces dessins ?"
+      : "En vous basant sur votre ÉTAT ACTUEL, dans quelle mesure avez-vous envie d'agir comme la personne représentée sur chacun de ces dessins ?";
 
     const cells = drawings.map((src, i) => `
       <div class="dat-cell">
@@ -388,7 +501,6 @@ function makeDatTrial(imgData, phase, trialNum) {
         <div class="dat-slider-wrap">
           <input type="range" name="dat_${catKeys[i]}"
                  class="dat-slider required-slider"
-                 data-drawing="${src}"
                  min="1" max="5" step="0.1" value="1">
           <div class="dat-tick-labels">
             <span>1<br><small>Pas du tout</small></span>
@@ -408,96 +520,102 @@ function makeDatTrial(imgData, phase, trialNum) {
   }
 
   return {
-    type        : jsPsychSurveyHtmlForm,
-    html        : buildDatHtml,
+    type: jsPsychSurveyHtmlForm,
+    html: buildDatHtml,
     button_label: 'Continuer',
-    on_load     : function() {
-      /* Validation : forcer le mouvement de tous les sliders avant soumission */
+    on_load: function() {
       const moved = new Set();
       document.querySelectorAll('.required-slider').forEach(s => {
         s.addEventListener('input', () => moved.add(s.name));
       });
       const btn = document.getElementById('jspsych-survey-html-form-next');
-      if (btn) {
-        btn.addEventListener('click', function(e) {
-          if (moved.size < 4) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            document.getElementById('dat-error').style.display = 'block';
-          }
-        }, true);
-      }
+      if (btn) btn.addEventListener('click', function(e) {
+        if (moved.size < 4) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          document.getElementById('dat-error').style.display = 'block';
+        }
+      }, true);
     },
-    on_finish   : function(data) {
-      data.phase        = 'dat_' + phase;
-      data.trial_num    = trialNum;
-      data.image_id     = imgData.image_id;
+    on_finish: function(data) {
+      data.phase = 'dat_' + phase;
+      data.trial_num = trialNum;
+      data.image_id = imgData.image_id;
       data.emotion_type = imgData.emotion;
-      // data.response : { dat_dat1: val, dat_dat2: val, ... }
       if (window._datState) {
-        data.dat_order    = window._datState.catKeys.join(',');
+        data.dat_order = window._datState.catKeys.join(',');
         data.dat_drawings = window._datState.drawings.join(',');
       }
     },
   };
 }
 
-/* ---- Module Situation (3 sliders HTML, ordre aleatoire) ---- */
 function makeSituationTrial(imgData, phase, trialNum) {
   function buildHtml() {
     const order = shuffle([0,1,2]);
     window._sitOrder = order;
+
     const rows = order.map(i => {
       const def = SIT_DEFS[i];
-      return '<div class="sit-row"><p class="sit-question">' + def.text + '</p>' +
-        '<div class="sit-slider-wrap"><input type="range" name="' + def.name + '" class="sit-slider" min="0" max="100" step="1" value="0">' +
-        '<div class="slider-tick-labels"><span>' + def.left + '</span><span>' + def.right + '</span></div></div></div>';
+      return `
+        <div class="sit-row">
+          <p class="sit-question">${def.text}</p>
+          <div class="sit-slider-wrap">
+            <input type="range" name="${def.name}" class="sit-slider" min="0" max="100" step="1" value="0">
+            <div class="slider-tick-labels"><span>${def.left}</span><span>${def.right}</span></div>
+          </div>
+        </div>`;
     }).join('');
-    return '<div class="module-container"><p class="module-header">En vous projetant dans la situation représentée par l\'image…</p>' + rows +
-      '<div id="sit-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div></div>';
+
+    return `
+      <div class="module-container">
+        <p class="module-header">En vous projetant dans la situation représentée par l'image…</p>
+        ${rows}
+        <div id="sit-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div>
+      </div>`;
   }
+
   return {
     type: jsPsychSurveyHtmlForm,
     html: buildHtml,
     button_label: 'Continuer',
     on_load: function() {
       const moved = new Set();
-      document.querySelectorAll('.sit-slider').forEach(function(s) {
-        s.addEventListener('input', function() { moved.add(s.name); });
+      document.querySelectorAll('.sit-slider').forEach(s => {
+        s.addEventListener('input', () => moved.add(s.name));
       });
       const btn = document.getElementById('jspsych-survey-html-form-next');
       if (btn) btn.addEventListener('click', function(e) {
-        if (moved.size < 3) { e.preventDefault(); e.stopImmediatePropagation(); document.getElementById('sit-error').style.display='block'; }
+        if (moved.size < 3) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          document.getElementById('sit-error').style.display = 'block';
+        }
       }, true);
     },
     on_finish: function(data) {
-      data.phase = 'situation_' + phase; data.trial_num = trialNum;
-      data.image_id = imgData.image_id; data.emotion_type = imgData.emotion;
-      data.sit_order = (window._sitOrder||[]).map(function(i){ return SIT_DEFS[i].name; }).join(',');
+      data.phase = 'situation_' + phase;
+      data.trial_num = trialNum;
+      data.image_id = imgData.image_id;
+      data.emotion_type = imgData.emotion;
+      data.sit_order = (window._sitOrder||[]).map(i => SIT_DEFS[i].name).join(',');
     },
   };
 }
 
 /* ==========================================================================
-   SECTION 5 — CONSTRUCTION DE LA TIMELINE
+   SECTION 6 — TIMELINE
    ========================================================================== */
 
 const jsPsych = initJsPsych({
   on_finish: function() { saveData(); },
 });
 
-/* Ordre aléatoire des 80 images (chaque image passée une seule fois) */
 const shuffledImages = shuffle(IMAGE_LIST);
 
-/* Toutes les images à précharger */
-const allImagePaths = shuffledImages.map(
-  d => CFG.IMG_BASE + d.folder + '/' + d.filename
-);
+const allImagePaths = shuffledImages.map(d => CFG.IMG_BASE + d.folder + '/' + d.filename);
+const allDatPaths   = Object.values(DAT_DRAWINGS).flat();
 
-/* Liste des dessins DAT à précharger */
-const allDatPaths = Object.values(DAT_DRAWINGS).flat();
-
-/* ----- Slide de bienvenue ----- */
 const welcome = {
   type    : jsPsychHtmlKeyboardResponse,
   stimulus: `
@@ -520,7 +638,6 @@ const welcome = {
   choices: ['Enter'],
 };
 
-/* ----- Préchargement ----- */
 const preload = {
   type  : jsPsychPreload,
   images: [...allImagePaths, ...allDatPaths],
@@ -528,34 +645,22 @@ const preload = {
   message: '<p style="color:#fff">Chargement des images…</p>',
 };
 
-/* ----- Boucle trials ----- */
 const trialTimeline = [];
 shuffledImages.forEach((imgData, idx) => {
   const trialNum = idx + 1;
-
   trialTimeline.push(
-    // 1. Fixation 2s
     makeFixation(),
-    // 2. Image originale 8s
     makeImageTrial(imgData, trialNum),
-    // 3. Émotion (6 sliders, AUTRE toujours dernier)
     makeEmotionTrial(imgData, trialNum),
-    // 4. DAT pré-zoom (4 dessins + sliders 1-5)
     makeDatTrial(imgData, 'pre_zoom', trialNum),
-    // 5. Situation (3 sliders)
     makeSituationTrial(imgData, 'pre_zoom', trialNum),
-    // 6. Fixation 2s
     makeFixation(),
-    // 7. Image zoomée 150% (centrée sur zoomX, zoomY) 8s
     makeZoomTrial(imgData, trialNum),
-    // 8. DAT post-zoom
     makeDatTrial(imgData, 'post_zoom', trialNum),
-    // 9. Situation post-zoom
     makeSituationTrial(imgData, 'post_zoom', trialNum),
   );
 });
 
-/* ----- Slide de fin ----- */
 const goodbye = {
   type    : jsPsychHtmlKeyboardResponse,
   stimulus: `
@@ -563,30 +668,20 @@ const goodbye = {
       <h2>Merci pour votre participation !</h2>
       <p>Vos données ont été sauvegardées.</p>
     </div>`,
-  choices         : 'NO_KEYS',
-  trial_duration  : 5000,
+  choices        : 'NO_KEYS',
+  trial_duration : 5000,
 };
 
-/* ----- Timeline finale ----- */
-jsPsych.run([
-  preload,
-  welcome,
-  ...trialTimeline,
-  goodbye,
-]);
+jsPsych.run([preload, welcome, ...trialTimeline, goodbye]);
 
 /* ==========================================================================
-   SECTION 6 — SAUVEGARDE DES DONNÉES (CSV)
+   SECTION 7 — SAUVEGARDE CSV
    ========================================================================== */
 function saveData() {
-  const allData = jsPsych.data.get().filter(
-    d => d.phase && d.phase !== 'fixation'
-  );
-
+  const allData = jsPsych.data.get().filter(d => d.phase && d.phase !== 'fixation');
   const rows = allData.values();
   if (!rows.length) return;
 
-  /* Collecte toutes les colonnes présentes */
   const cols = new Set();
   rows.forEach(r => Object.keys(r).forEach(k => cols.add(k)));
   const headers = [...cols];
