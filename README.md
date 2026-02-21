@@ -1,4 +1,4 @@
-# YC5 Expérience - Psychologie du Comportement
+# YC6 - Psychologie du Comportement
 
 Expérience comportementale interactive utilisant jsPsych.
 
