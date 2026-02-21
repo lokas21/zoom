@@ -1,4 +1,4 @@
-# YC6 - Psychologie du Comportement
+# YC6 - Évaluation affective d'images 
 
 Expérience comportementale interactive utilisant jsPsych.
 
