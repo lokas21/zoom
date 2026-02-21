@@ -315,20 +315,24 @@ function makeZoomTrial(imgData, trialNum) {
   };
 }
 
-function makeEmotionTrial(imgData, trialNum) {
+/* ---- Module Émotion (6 sliders, AUTRE toujours dernier) ---- */
+function makeEmotionTrial(imgData, trialNum, phaseLabel) {
   function buildHtml() {
     const coreShuf = shuffle([0,1,2,3,4]);
     const order = [...coreShuf, 5];
     window._emoOrder = order;
+
     const rows = order.map(i => {
       const def = EMOTION_DEFS[i];
       return '<div class="emo-row"><div class="emo-label">' + def.label + '</div>' +
         '<div class="emo-slider-wrap"><input type="range" name="' + def.name + '" class="emo-slider" min="0" max="100" step="1" value="0">' +
         '<div class="slider-tick-labels"><span>Pas du tout</span><span>Extrêmement</span></div></div></div>';
     }).join('');
+
     return '<div class="module-container"><p class="module-header">Pendant que vous regardiez l\'image, dans quelle mesure avez-vous ressenti chacune des émotions suivantes ?</p>' + rows +
       '<div id="emo-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div></div>';
   }
+
   return {
     type: jsPsychSurveyHtmlForm,
     html: buildHtml,
@@ -340,26 +344,34 @@ function makeEmotionTrial(imgData, trialNum) {
       });
       const btn = document.getElementById('jspsych-survey-html-form-next');
       if (btn) btn.addEventListener('click', function(e) {
-        if (moved.size < 6) { e.preventDefault(); e.stopImmediatePropagation(); document.getElementById('emo-error').style.display='block'; }
+        if (moved.size < 6) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          document.getElementById('emo-error').style.display='block';
+        }
       }, true);
     },
     on_finish: function(data) {
-      data.phase = 'emotion'; data.trial_num = trialNum;
-      data.image_id = imgData.image_id; data.emotion_type = imgData.emotion;
+      data.phase = 'emotion_' + (phaseLabel || 'pre_zoom');
+      data.trial_num = trialNum;
+      data.image_id = imgData.image_id;
+      data.emotion_type = imgData.emotion;
       data.emotion_order = (window._emoOrder||[]).map(function(i){ return EMOTION_DEFS[i].name; }).join(',');
     },
   };
 }
 
+/* ---- Module DAT (4 dessins + 4 sliders 1-5, grille 2x2) ---- */
 function makeDatTrial(imgData, phase, trialNum) {
   function buildDatHtml() {
     const catKeys  = shuffle(['approach','confrontation','freeze','withdraw']);
     const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));
     window._datState = { catKeys, drawings };
 
+    /* IMPORTANT : on utilise TOUJOURS la même phrase (pas de version "ÉTAT ACTUEL") */
     const header =
-  'Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?';
-    
+      'Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?';
+
     const cells = drawings.map((src, i) => `
       <div class="dat-cell">
         <img src="${src}" alt="dessin ${i+1}">
@@ -418,6 +430,7 @@ function makeDatTrial(imgData, phase, trialNum) {
   };
 }
 
+/* ---- Module Situation (3 sliders HTML, ordre aleatoire) ---- */
 function makeSituationTrial(imgData, phase, trialNum) {
   function buildHtml() {
     const order = shuffle([0,1,2]);
@@ -431,6 +444,7 @@ function makeSituationTrial(imgData, phase, trialNum) {
     return '<div class="module-container"><p class="module-header">En vous projetant dans la situation représentée par l\'image…</p>' + rows +
       '<div id="sit-error" class="error-msg" style="display:none">Merci de déplacer tous les curseurs avant de continuer.</div></div>';
   }
+
   return {
     type: jsPsychSurveyHtmlForm,
     html: buildHtml,
@@ -442,12 +456,18 @@ function makeSituationTrial(imgData, phase, trialNum) {
       });
       const btn = document.getElementById('jspsych-survey-html-form-next');
       if (btn) btn.addEventListener('click', function(e) {
-        if (moved.size < 3) { e.preventDefault(); e.stopImmediatePropagation(); document.getElementById('sit-error').style.display='block'; }
+        if (moved.size < 3) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          document.getElementById('sit-error').style.display='block';
+        }
       }, true);
     },
     on_finish: function(data) {
-      data.phase = 'situation_' + phase; data.trial_num = trialNum;
-      data.image_id = imgData.image_id; data.emotion_type = imgData.emotion;
+      data.phase = 'situation_' + phase;
+      data.trial_num = trialNum;
+      data.image_id = imgData.image_id;
+      data.emotion_type = imgData.emotion;
       data.sit_order = (window._sitOrder||[]).map(function(i){ return SIT_DEFS[i].name; }).join(',');
     },
   };
@@ -518,14 +538,34 @@ shuffledImages.forEach((imgData, idx) => {
   const trialNum = idx + 1;
 
   trialTimeline.push(
+    // 1. Fixation 2s
     makeFixation(),
+
+    // 2. Image originale 8s
     makeImageTrial(imgData, trialNum),
-    makeEmotionTrial(imgData, trialNum),
+
+    // 3. Émotions (pré-zoom)
+    makeEmotionTrial(imgData, trialNum, 'pre_zoom'),
+
+    // 4. DAT pré-zoom
     makeDatTrial(imgData, 'pre_zoom', trialNum),
+
+    // 5. Situation pré-zoom
     makeSituationTrial(imgData, 'pre_zoom', trialNum),
+
+    // 6. Fixation 2s
     makeFixation(),
+
+    // 7. Image zoomée 8s
     makeZoomTrial(imgData, trialNum),
+
+    // 8. Émotions (post-zoom)  ✅ AJOUTÉ
+    makeEmotionTrial(imgData, trialNum, 'post_zoom'),
+
+    // 9. DAT post-zoom
     makeDatTrial(imgData, 'post_zoom', trialNum),
+
+    // 10. Situation post-zoom
     makeSituationTrial(imgData, 'post_zoom', trialNum),
   );
 });
