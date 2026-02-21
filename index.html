@@ -54,40 +54,7 @@
 
     /* ---- Canvas plein écran ---- */
     canvas { display: block; margin: 0 auto; }
-  
-
-/* ===========================
-   FIX SITUATION (seulement)
-   - sliders prennent toute la largeur du module
-   - labels gauche/droite ne se collent pas
-   =========================== */
-.sit-row{
-  display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  gap:10px;
-  margin-bottom:22px;
-}
-.sit-question{
-  margin:0 0 8px 0;
-}
-.sit-slider-wrap{
-  width:100%;
-}
-.sit-slider-wrap input[type="range"]{
-  width:100%;
-}
-.sit-row .slider-tick-labels{
-  width:100%;
-  display:flex;
-  justify-content:space-between;
-  gap:18px;
-  margin-top:4px;
-}
-.sit-row .slider-tick-labels span{
-  white-space:normal;
-}
-</style>
+  </style>
 </head>
 <body>
 <script>
@@ -119,12 +86,11 @@ const CFG = {
    Un dessin aléatoire est sélectionné par trial, dans un ordre aléatoire
    des 4 dimensions.                                                         */
 const DAT_DRAWINGS = {
-  approach      : [ 'dat_images/dat1/ApR1.png', 'dat_images/dat1/ApR2.png' ], 
-  confrontation : [ 'dat_images/dat2/ApT1.png', 'dat_images/dat2/ApT2.png' ], 
-  withdraw      : [ 'dat_images/dat3/AvR1.png', 'dat_images/dat3/AvR2.png' ], 
-  freeze        : [ 'dat_images/dat4/AvT1.png', 'dat_images/dat4/AvT2.png' ], 
+  approach      : [ 'dat_images/dat1/ApR1.png', 'dat_images/dat1/ApR2.png' ],
+  confrontation : [ 'dat_images/dat2/ApT1.png', 'dat_images/dat2/ApT2.png' ],
+  withdraw       : [ 'dat_images/dat3/AvR1.png', 'dat_images/dat3/AvR2.png' ],
+  freeze      : [ 'dat_images/dat4/AvT1.png', 'dat_images/dat4/AvT2.png' ],
 };
-
 
 /* ==========================================================================
    SECTION 2 — LISTE D'IMAGES  (générée automatiquement depuis emotion_file_8_essais.xlsx)
