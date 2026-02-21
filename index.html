@@ -1,19 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Experiment</title>
-    <link rel="stylesheet" href="https://cdn.jspsych.org/dist/css/jspsych.css">
-    <link rel="stylesheet" href="https://cdn.jspsych.org/dist/css/jspsych.css">
+    <title>YC5 Experiment</title>
+    <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/jspsych.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-button-response.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/plugins/jspsych-html-slider-response.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspsych@6.3.1/css/jspsych.css">
 </head>
 <body>
-    <script src="https://cdn.jspsych.org/dist/jspsych.js"></script>
-    <script src="https://cdn.jspsych.org/dist/plugins/jspsych-html-keyboard-response.js"></script>
-    <script src="https://cdn.jspsych.org/dist/plugins/jspsych-html-image-response.js"></script>
-    <script src="https://cdn.jspsych.org/dist/plugins/jspsych-survey-html.js"></script>
     <script>
-        // Your experiment code goes here
+        // Your complete YC5 experiment code here
+
+        // Define your timeline and other experiment-related code
+        var timeline = [];
+
+        // Example trial
+        var trial = {
+            type: 'html-button-response',
+            stimulus: 'Welcome to the YC5 experiment!',
+            choices: ['Start']
+        };
+
+        timeline.push(trial);
+
+        // Initialize jsPsych
+        jsPsych.init({
+            timeline: timeline,
+            on_finish: function() {
+                jsPsych.data.displayData();
+            }
+        });
     </script>
 </body>
 </html>
