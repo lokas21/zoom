@@ -68,11 +68,9 @@
    ├── images/
    │   ├── sadness/             ← toutes les images sadness_*.jpg/png
    │   └── hope/                ← toutes les images hope_*.jpg/png
-   └── dat_images/
-       ├── dat1/                ← dessins pour la dimension DAT 1 (plusieurs fichiers .jpg)
-       ├── dat2/
-       ├── dat3/
-       └── dat4/
+   └── DAT/                 ← dossier avec les 8 dessins DAT (.png)
+       ├── ApR1.png, ApR2.png, ApT1.png, ApT2.png
+       └── AvR1.png, AvR2.png, AvT1.png, AvT2.png
 */
 
 const CFG = {
@@ -88,10 +86,10 @@ const CFG = {
    Un dessin aléatoire est sélectionné par trial, dans un ordre aléatoire
    des 4 dimensions.                                                         */
 const DAT_DRAWINGS = {
-  dat1 : [ 'dat_images/dat1/drawing_01.jpg', 'dat_images/dat1/drawing_02.jpg' ],
-  dat2 : [ 'dat_images/dat2/drawing_01.jpg', 'dat_images/dat2/drawing_02.jpg' ],
-  dat3 : [ 'dat_images/dat3/drawing_01.jpg', 'dat_images/dat3/drawing_02.jpg' ],
-  dat4 : [ 'dat_images/dat4/drawing_01.jpg', 'dat_images/dat4/drawing_02.jpg' ],
+  approach      : [ 'DAT/ApR1.png', 'DAT/ApR2.png' ],
+  confrontation : [ 'DAT/ApT1.png', 'DAT/ApT2.png' ],
+  freeze        : [ 'DAT/AvT1.png', 'DAT/AvT2.png' ],
+  withdraw      : [ 'DAT/AvR1.png', 'DAT/AvR2.png' ],
 };
 
 /* ==========================================================================
@@ -374,7 +372,7 @@ function makeEmotionTrial(imgData, trialNum) {
 function makeDatTrial(imgData, phase, trialNum) {
   // Construit le HTML du formulaire DAT avec dessins et sliders
   function buildDatHtml() {
-    const catKeys  = shuffle(['dat1','dat2','dat3','dat4']);  // ordre aléatoire des 4 dim.
+    const catKeys  = shuffle(['approach','confrontation','freeze','withdraw']);  // ordre aléatoire des 4 dim.
     const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));  // 1 dessin par dim.
 
     // Stocke pour récupération dans on_finish
@@ -503,13 +501,23 @@ const allDatPaths = Object.values(DAT_DRAWINGS).flat();
 const welcome = {
   type    : jsPsychHtmlKeyboardResponse,
   stimulus: `
-    <div style="color:#fff;text-align:center;max-width:700px;margin:auto;font-size:18px;line-height:1.7">
-      <h2>Bienvenue</h2>
-      <p>Vous allez voir une série d'images.<br>
-         Après chaque image, vous répondrez à quelques questions.</p>
-      <p>Appuyez sur <strong>ESPACE</strong> pour commencer.</p>
+    <div style="color:#fff;max-width:820px;margin:auto;font-size:18px;line-height:1.8;padding:20px;">
+      <h2 style="text-align:center;font-size:26px;margin-bottom:30px;">Bienvenue</h2>
+      <ul style="margin-bottom:20px;">
+        <li>Vous allez voir <strong>80 images</strong> au total.</li>
+        <li style="margin-top:12px;">Pour chaque image, il vous sera demandé de vous <strong>immerger profondément dans la situation représentée, <u>comme si vous la viviez réellement</u></strong>, avant de répondre à quelques questions.</li>
+      </ul>
+      <p><strong>Pour chaque image, imaginez que vous êtes physiquement présent(e) dans la situation représentée.</strong></p>
+      <p><strong>Imaginez que :</strong></p>
+      <ul>
+        <li>vous voyez la scène à travers vos propres yeux</li>
+        <li>votre corps est réellement présent</li>
+        <li>ce qui se passe vous arrive directement</li>
+      </ul>
+      <p style="margin-top:16px;">Lorsque vous répondez aux questions, ne jugez pas l'image en tant qu'image. Répondez comme si la situation se produisait réellement, ici et maintenant.</p>
+      <p style="text-align:center;margin-top:30px;font-size:16px;">Appuyez sur <strong>ENTRÉE</strong> pour passer à la suite</p>
     </div>`,
-  choices: [' '],
+  choices: ['Enter'],
 };
 
 /* ----- Préchargement ----- */
@@ -603,5 +611,3 @@ function saveData() {
 </script>
 </body>
 </html>
-
-
