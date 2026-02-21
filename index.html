@@ -4,13 +4,12 @@
   <meta charset="UTF-8">
   <title>YC5 – Expérience</title>
 
-  <!-- jsPsych 7 — URLs officielles (sans chemin explicite) -->
+  <!-- jsPsych 7 — URLs officielles -->
   <script src="https://unpkg.com/jspsych@7.3.4"></script>
   <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-canvas-keyboard-response@1.1.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.3"></script>
   <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.3"></script>
-  <!-- jsPsych CSS -->
   <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
 
   <style>
@@ -29,20 +28,17 @@
     .emo-label { font-size:16px; font-weight:bold; width:120px; flex-shrink:0; }
     .emo-slider-wrap, .sit-slider-wrap { flex:1; }
     .sit-question { font-size:15px; margin-bottom:8px; }
-/* ---- Module Situation (corrigé : sliders même largeur) ---- */
-.sit-row { 
-  width: 100%;
-  flex-direction: column;
-  align-items: stretch;
-}
 
-.sit-question { 
-  width: 100%;
-}
+    /* ---- Module Situation (corrigé : sliders même largeur) ---- */
+    .sit-row {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .sit-question { width: 100%; }
+    .sit-slider-wrap { width: 100%; }
 
-.sit-slider-wrap { 
-  width: 100%;
-}    .emo-slider-wrap input[type="range"], .sit-slider-wrap input[type="range"] { width:100%; accent-color:#aaa; }
+    .emo-slider-wrap input[type="range"], .sit-slider-wrap input[type="range"] { width:100%; accent-color:#aaa; }
     .slider-tick-labels { display:flex; justify-content:space-between; font-size:12px; color:#aaa; margin-top:3px; }
     .error-msg { color:#ff6666; font-size:14px; margin-top:10px; }
     .jspsych-btn { background:#555; color:#fff; border:1px solid #aaa; padding:10px 30px;
@@ -68,47 +64,34 @@
     canvas { display: block; margin: 0 auto; }
   </style>
 </head>
+
 <body>
 <script>
 "use strict";
 
 /* ==========================================================================
-   SECTION 1 — CONFIGURATION  (modifiez ici selon vos fichiers)
-   ==========================================================================
-   Structure de dossiers attendue :
-   ├── YC5_experiment.html      ← ce fichier
-   ├── images/
-   │   ├── sadness/             ← toutes les images sadness_*.jpg/png
-   │   └── hope/                ← toutes les images hope_*.jpg/png
-   └── DAT/                 ← dossier avec les 8 dessins DAT (.png)
-       ├── ApR1.png, ApR2.png, ApT1.png, ApT2.png
-       └── AvR1.png, AvR2.png, AvT1.png, AvT2.png
-*/
+   SECTION 1 — CONFIGURATION
+   ========================================================================== */
 
 const CFG = {
-  IMG_BASE    : 'images/',          // chemin relatif vers le dossier images
-  ZOOM_FACTOR : 1.5,                // facteur de zoom (ne pas changer sauf si souhaité)
-  FIX_MS      : 2000,               // durée fixation (ms)
-  IMG_MS      : 8000,               // durée présentation image (ms)
+  IMG_BASE    : 'images/',
+  ZOOM_FACTOR : 1.5,
+  FIX_MS      : 2000,
+  IMG_MS      : 8000,
   BG_COLOR    : '#3c3c3c',
 };
 
-/* ---------- Dessins DAT : ajoutez autant de fichiers que vous en avez ------
-   Pour chaque dimension (dat1..dat4), listez vos fichiers de dessins.
-   Un dessin aléatoire est sélectionné par trial, dans un ordre aléatoire
-   des 4 dimensions.                                                         */
+/* ---------- Dessins DAT ---------- */
 const DAT_DRAWINGS = {
   approach      : [ 'dat_images/dat1/ApR1.png', 'dat_images/dat1/ApR2.png' ],
   confrontation : [ 'dat_images/dat2/ApT1.png', 'dat_images/dat2/ApT2.png' ],
-  withdraw       : [ 'dat_images/dat3/AvR1.png', 'dat_images/dat3/AvR2.png' ],
-  freeze      : [ 'dat_images/dat4/AvT1.png', 'dat_images/dat4/AvT2.png' ],
+  withdraw      : [ 'dat_images/dat3/AvR1.png', 'dat_images/dat3/AvR2.png' ],
+  freeze        : [ 'dat_images/dat4/AvT1.png', 'dat_images/dat4/AvT2.png' ],
 };
 
 /* ==========================================================================
-   SECTION 2 — LISTE D'IMAGES  (générée automatiquement depuis emotion_file_8_essais.xlsx)
-   ==========================================================================
-   Chaque objet : { emotion, image_id, filename, folder, zoomX, zoomY }
-   zoomX / zoomY sont en pixels dans l'image originale.                      */
+   SECTION 2 — LISTE D'IMAGES
+   ========================================================================== */
 
 const IMAGE_LIST = [
   {emotion:"sadness",image_id:"sadness_00001.JPG",filename:"sadness_00001.JPG",folder:"sadness",zoomX:1034.8,zoomY:268.07},
@@ -197,14 +180,12 @@ const IMAGE_LIST = [
    SECTION 3 — UTILITAIRES
    ========================================================================== */
 
-/** Retourne l'image en cache navigateur (après préchargement jsPsych) */
 function getCachedImage(src) {
   const img = new Image();
-  img.src = src;   // instantané depuis le cache navigateur
+  img.src = src;
   return img;
 }
 
-/** Dessine une image centrée sur canvas, maintenant le ratio */
 function drawImageCentered(canvas, imgSrc) {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = CFG.BG_COLOR;
@@ -222,7 +203,6 @@ function drawImageCentered(canvas, imgSrc) {
   else { img.onload = go; }
 }
 
-/** Dessine l'image zoomée (même logique que MATLAB showZoomedTexture) */
 function drawImageZoomed(canvas, imgSrc, zoomX, zoomY) {
   const ctx  = canvas.getContext('2d');
   const zf   = CFG.ZOOM_FACTOR;
@@ -234,7 +214,6 @@ function drawImageZoomed(canvas, imgSrc, zoomX, zoomY) {
     const srcW = IW / zf, srcH = IH / zf;
     let srcX = zoomX - srcW / 2;
     let srcY = zoomY - srcH / 2;
-    // Clamp aux bords de l'image
     srcX = Math.max(0, Math.min(srcX, IW - srcW));
     srcY = Math.max(0, Math.min(srcY, IH - srcH));
     ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
@@ -243,7 +222,6 @@ function drawImageZoomed(canvas, imgSrc, zoomX, zoomY) {
   else { img.onload = go; }
 }
 
-/** Fisher-Yates shuffle */
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -253,7 +231,6 @@ function shuffle(arr) {
   return a;
 }
 
-/** Sélectionne un élément aléatoire d'un tableau */
 function randomPick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -262,7 +239,6 @@ function randomPick(arr) {
    SECTION 4 — CONSTRUCTEURS DE TRIALS
    ========================================================================== */
 
-/* ---- Définitions des émotions ---- */
 const EMOTION_DEFS = [
   { name: 'joie',      label: 'JOIE' },
   { name: 'colere',    label: 'COLÈRE' },
@@ -272,7 +248,6 @@ const EMOTION_DEFS = [
   { name: 'autre',     label: 'AUTRE' },
 ];
 
-/* ---- Définitions des questions Situation ---- */
 const SIT_DEFS = [
   {
     name  : 'sit_controle',
@@ -294,7 +269,6 @@ const SIT_DEFS = [
   },
 ];
 
-/* ---- Fixation ---- */
 function makeFixation() {
   return {
     type    : jsPsychHtmlKeyboardResponse,
@@ -305,7 +279,6 @@ function makeFixation() {
   };
 }
 
-/* ---- Image normale (canvas centré) ---- */
 function makeImageTrial(imgData, trialNum) {
   const src = CFG.IMG_BASE + imgData.folder + '/' + imgData.filename;
   return {
@@ -323,7 +296,6 @@ function makeImageTrial(imgData, trialNum) {
   };
 }
 
-/* ---- Image zoomée (canvas) ---- */
 function makeZoomTrial(imgData, trialNum) {
   const src = CFG.IMG_BASE + imgData.folder + '/' + imgData.filename;
   return {
@@ -343,7 +315,6 @@ function makeZoomTrial(imgData, trialNum) {
   };
 }
 
-/* ---- Module Émotion (6 sliders, AUTRE toujours dernier) ---- */
 function makeEmotionTrial(imgData, trialNum) {
   function buildHtml() {
     const coreShuf = shuffle([0,1,2,3,4]);
@@ -380,14 +351,10 @@ function makeEmotionTrial(imgData, trialNum) {
   };
 }
 
-/* ---- Module DAT (4 dessins + 4 sliders 1-5, grille 2x2) ---- */
 function makeDatTrial(imgData, phase, trialNum) {
-  // Construit le HTML du formulaire DAT avec dessins et sliders
   function buildDatHtml() {
-    const catKeys  = shuffle(['approach','confrontation','freeze','withdraw']);  // ordre aléatoire des 4 dim.
-    const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));  // 1 dessin par dim.
-
-    // Stocke pour récupération dans on_finish
+    const catKeys  = shuffle(['approach','confrontation','freeze','withdraw']);
+    const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));
     window._datState = { catKeys, drawings };
 
     const header = phase === 'pre_zoom'
@@ -424,7 +391,6 @@ function makeDatTrial(imgData, phase, trialNum) {
     html        : buildDatHtml,
     button_label: 'Continuer',
     on_load     : function() {
-      /* Validation : forcer le mouvement de tous les sliders avant soumission */
       const moved = new Set();
       document.querySelectorAll('.required-slider').forEach(s => {
         s.addEventListener('input', () => moved.add(s.name));
@@ -445,7 +411,6 @@ function makeDatTrial(imgData, phase, trialNum) {
       data.trial_num    = trialNum;
       data.image_id     = imgData.image_id;
       data.emotion_type = imgData.emotion;
-      // data.response : { dat_dat1: val, dat_dat2: val, ... }
       if (window._datState) {
         data.dat_order    = window._datState.catKeys.join(',');
         data.dat_drawings = window._datState.drawings.join(',');
@@ -454,7 +419,6 @@ function makeDatTrial(imgData, phase, trialNum) {
   };
 }
 
-/* ---- Module Situation (3 sliders HTML, ordre aleatoire) ---- */
 function makeSituationTrial(imgData, phase, trialNum) {
   function buildHtml() {
     const order = shuffle([0,1,2]);
@@ -498,46 +462,55 @@ const jsPsych = initJsPsych({
   on_finish: function() { saveData(); },
 });
 
-/* Ordre aléatoire des 80 images (chaque image passée une seule fois) */
 const shuffledImages = shuffle(IMAGE_LIST);
 
-/* Toutes les images à précharger */
 const allImagePaths = shuffledImages.map(
   d => CFG.IMG_BASE + d.folder + '/' + d.filename
 );
 
-/* Liste des dessins DAT à précharger */
 const allDatPaths = Object.values(DAT_DRAWINGS).flat();
 
-/* ----- Slide de bienvenue ----- */
-const welcome = {
-  type    : jsPsychHtmlKeyboardResponse,
-  stimulus: `
-    <div style="color:#fff;max-width:820px;margin:auto;font-size:18px;line-height:1.8;padding:20px;">
-      <h2 style="text-align:center;font-size:26px;margin-bottom:30px;">Bienvenue</h2>
-      <ul style="margin-bottom:20px;">
-        <li>Vous allez voir <strong>80 images</strong> au total.</li>
-        <li style="margin-top:12px;">Pour chaque image, il vous sera demandé de vous <strong>immerger profondément dans la situation représentée, <u>comme si vous la viviez réellement</u></strong>, avant de répondre à quelques questions.</li>
-      </ul>
-      <p><strong>Pour chaque image, imaginez que vous êtes physiquement présent(e) dans la situation représentée.</strong></p>
-      <p><strong>Imaginez que :</strong></p>
-      <ul>
-        <li>vous voyez la scène à travers vos propres yeux</li>
-        <li>votre corps est réellement présent</li>
-        <li>ce qui se passe vous arrive directement</li>
-      </ul>
-      <p style="margin-top:16px;">Lorsque vous répondez aux questions, ne jugez pas l'image en tant qu'image. Répondez comme si la situation se produisait réellement, ici et maintenant.</p>
-      <p style="text-align:center;margin-top:30px;font-size:16px;">Appuyez sur <strong>ENTRÉE</strong> pour passer à la suite</p>
-    </div>`,
-  choices: ['Enter'],
-};
+/* ===== Slides intro/fin ===== */
+const SLIDE_PATHS = [
+  'slides/slide1.png',
+  'slides/slide2.png',
+  'slides/slide3.png',
+  'slides/slide4.png',
+  'slides/slide5.png',
+  'slides/slide6.png',
+  'slides/slide7.png',
+];
 
 /* ----- Préchargement ----- */
 const preload = {
   type  : jsPsychPreload,
-  images: [...allImagePaths, ...allDatPaths],
+  images: [...allImagePaths, ...allDatPaths, ...SLIDE_PATHS],
   show_progress_bar: true,
   message: '<p style="color:#fff">Chargement des images…</p>',
+};
+
+/* ----- Slides d'introduction (1 à 6) ----- */
+const introSlides = {
+  timeline: [
+    { type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<img src="slides/slide1.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+      choices: ['Enter'] },
+    { type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<img src="slides/slide2.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+      choices: ['Enter'] },
+    { type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<img src="slides/slide3.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+      choices: ['Enter'] },
+    { type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<img src="slides/slide4.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+      choices: ['Enter'] },
+    { type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<img src="slides/slide5.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+      choices: ['Enter'] },
+    { type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<img src="slides/slide6.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+      choices: ['Enter'] },
+  ],
 };
 
 /* ----- Boucle trials ----- */
@@ -546,43 +519,30 @@ shuffledImages.forEach((imgData, idx) => {
   const trialNum = idx + 1;
 
   trialTimeline.push(
-    // 1. Fixation 2s
     makeFixation(),
-    // 2. Image originale 8s
     makeImageTrial(imgData, trialNum),
-    // 3. Émotion (6 sliders, AUTRE toujours dernier)
     makeEmotionTrial(imgData, trialNum),
-    // 4. DAT pré-zoom (4 dessins + sliders 1-5)
     makeDatTrial(imgData, 'pre_zoom', trialNum),
-    // 5. Situation (3 sliders)
     makeSituationTrial(imgData, 'pre_zoom', trialNum),
-    // 6. Fixation 2s
     makeFixation(),
-    // 7. Image zoomée 150% (centrée sur zoomX, zoomY) 8s
     makeZoomTrial(imgData, trialNum),
-    // 8. DAT post-zoom
     makeDatTrial(imgData, 'post_zoom', trialNum),
-    // 9. Situation post-zoom
     makeSituationTrial(imgData, 'post_zoom', trialNum),
   );
 });
 
-/* ----- Slide de fin ----- */
+/* ----- Slide de fin (7) : 5 secondes ----- */
 const goodbye = {
-  type    : jsPsychHtmlKeyboardResponse,
-  stimulus: `
-    <div style="color:#fff;text-align:center;font-size:22px">
-      <h2>Merci pour votre participation !</h2>
-      <p>Vos données ont été sauvegardées.</p>
-    </div>`,
-  choices         : 'NO_KEYS',
-  trial_duration  : 5000,
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: '<img src="slides/slide7.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+  choices: 'NO_KEYS',
+  trial_duration: 5000,
 };
 
 /* ----- Timeline finale ----- */
 jsPsych.run([
   preload,
-  welcome,
+  introSlides,
   ...trialTimeline,
   goodbye,
 ]);
@@ -598,7 +558,6 @@ function saveData() {
   const rows = allData.values();
   if (!rows.length) return;
 
-  /* Collecte toutes les colonnes présentes */
   const cols = new Set();
   rows.forEach(r => Object.keys(r).forEach(k => cols.add(k)));
   const headers = [...cols];
