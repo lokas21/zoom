@@ -357,10 +357,9 @@ function makeDatTrial(imgData, phase, trialNum) {
     const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));
     window._datState = { catKeys, drawings };
 
-    const header = phase === 'pre_zoom'
-      ? 'Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?'
-      : 'En vous basant sur votre ÉTAT ACTUEL, dans quelle mesure avez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?';
-
+    const header =
+  'Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?';
+    
     const cells = drawings.map((src, i) => `
       <div class="dat-cell">
         <img src="${src}" alt="dessin ${i+1}">
