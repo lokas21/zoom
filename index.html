@@ -13,6 +13,35 @@
   <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
 
   <style>
+/* =========================================================
+   Marque centrale (50%) sur TOUS les sliders (émotion/situation/DAT)
+   ========================================================= */
+
+/* Les wrappers doivent être positionnés pour accueillir la tick */
+.emo-slider-wrap,
+.sit-slider-wrap,
+.dat-slider-wrap {
+  position: relative;
+}
+
+/* La tick centrale */
+.emo-slider-wrap::before,
+.sit-slider-wrap::before,
+.dat-slider-wrap::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Ajuste légèrement si besoin selon ton navigateur */
+  top: 9px;
+  width: 2px;
+  height: 14px;
+  background: #ffffff;     /* ou #aaa si tu préfères plus discret */
+  opacity: 0.8;
+  pointer-events: none;    /* ne bloque jamais l’interaction */
+  border-radius: 1px;
+}
+
     /* ---- Fond sombre ---- */
     body { background: #3c3c3c; margin: 0; padding: 0; }
     .jspsych-display-element { background: #3c3c3c; }
