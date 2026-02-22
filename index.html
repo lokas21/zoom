@@ -526,6 +526,36 @@ const preload = {
   message: '<p style="color:#fff">Chargement des images…</p>',
 };
 
+/* ----- Slide informations (Enter) ----- */
+const informationSlide = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: '<img src="slides/slide_informations.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+  choices: ['Enter']
+};
+/* ----- Slide consentement ----- */
+const consentSlide = {
+  type: jsPsychSurveyHtmlForm,
+  html: `
+    <div style="color:#fff; max-width:800px; margin:0 auto; font-size:18px; line-height:1.6; padding:20px; text-align:left;">
+      <p><strong>Dans le cadre d'un consentement de participation, vous acceptez les points suivants.</strong></p>
+      <p>Si vous ne consentez pas à une des deux affirmations, vous pouvez quitter la page :</p>
+      <br>
+      <p>1. L’utilisation des données à des fins scientifiques et la publication des résultats de la recherche dans des revues ou livres scientifiques, étant entendu que les données resteront anonymes et qu’aucune information ne sera donnée sur mon identité.</p>
+      <br>
+      <p>2. L’utilisation des données à des fins pédagogiques (cours et séminaires de formations d’étudiants ou de professionnels soumis au secret professionnel). L'anonymat reste préservé.</p>
+      <br><br>
+      <label>
+        <input type="checkbox" name="consent" value="yes" required>
+        Je consens aux deux affirmations.
+      </label>
+    </div>
+  `,
+  button_label: "Continuer",
+  on_finish: function(data){
+    data.phase = "consent";
+  }
+};
+
 /* ----- Question sexe ----- */
 const sexeQuestion = {
   type: jsPsychSurveyHtmlForm,
@@ -621,6 +651,8 @@ const goodbye = {
 /* ----- Timeline finale ----- */
 jsPsych.run([
   preload,
+  informationSlide,
+  consentSlide,
   sexeQuestion,
   introSlides,
   ...trialTimeline,
