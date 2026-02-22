@@ -666,7 +666,7 @@ function saveData() {
 
     const trialNum = imgTrial.trial_num;
     const imageId = imgTrial.image_id;
-    const imageType = imgTrial.emotion_type;
+const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
     const imageFormat = imgTrial.phase === "image_normal"
       ? "original"
       : "zoomed";
