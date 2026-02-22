@@ -17,7 +17,7 @@ Ouvrez le lien ci-dessus dans un navigateur récent (Chrome ou Firefox recommand
 
 ## Collecte des données
 
-Les données sont sauvegardées **localement** dans le navigateur du participant. À la fin de l'expérience, un fichier CSV nommé `YC5_data_<horodatage>.csv` est automatiquement téléchargé sur l'ordinateur du participant.
+Les données sont sauvegardées **localement** dans le navigateur du participant. À la fin de l'expérience, un fichier CSV nommé `YC6_data_<horodatage>.csv` est automatiquement téléchargé sur l'ordinateur du participant.
 
 Pour récupérer les données :
 1. Demandez aux participants d'envoyer leur fichier CSV par e-mail ou via un lien de partage (ex. OneDrive, Dropbox).
