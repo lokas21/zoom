@@ -631,35 +631,135 @@ jsPsych.run([
    SECTION 6 — SAUVEGARDE DES DONNÉES (CSV)
    ========================================================================== */
 function saveData() {
-  const allData = jsPsych.data.get().filter(
-    d => d.phase && d.phase !== 'fixation'
-  );
 
-  const rows = allData.values();
-  if (!rows.length) return;
+  const allData = jsPsych.data.get().values();
 
-  const cols = new Set();
-  rows.forEach(r => Object.keys(r).forEach(k => cols.add(k)));
-  const headers = [...cols];
+  /* ============================
+     1️⃣ Récupérer le sexe
+  ============================ */
+
+  const demo = allData.find(d => d.phase === "demographics");
+  const sexe = demo?.response?.sexe || "";
+
+  /* ============================
+     2️⃣ Récupérer uniquement les essais image
+        (original + zoomed)
+  ============================ */
+
+ const imageTrials = allData
+  .filter(d => d.phase === "image_normal" || d.phase === "image_zoom")
+  .sort((a,b) => {
+    if (a.trial_num !== b.trial_num) return a.trial_num - b.trial_num;
+    // original avant zoomed
+    const pa = (a.phase === "image_normal") ? 0 : 1;
+    const pb = (b.phase === "image_normal") ? 0 : 1;
+    return pa - pb;
+  });
+
+  /* ============================
+     3️⃣ Construire les 80 lignes propres
+  ============================ */
+
+  const finalRows = [];
+
+  imageTrials.forEach(imgTrial => {
+
+    const trialNum = imgTrial.trial_num;
+    const imageId = imgTrial.image_id;
+    const imageType = imgTrial.emotion_type;
+    const imageFormat = imgTrial.phase === "image_normal"
+      ? "original"
+      : "zoomed";
+
+    /* Récupérer les réponses associées à CE trial et CE format */
+    const emotionTrial = allData.find(d =>
+      d.phase === `emotion_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
+      && d.trial_num === trialNum
+    );
+
+    const datTrial = allData.find(d =>
+      d.phase === `dat_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
+      && d.trial_num === trialNum
+    );
+
+    const sitTrial = allData.find(d =>
+      d.phase === `situation_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
+      && d.trial_num === trialNum
+    );
+
+    const emo = emotionTrial?.response || {};
+    const dat = datTrial?.response || {};
+    const sit = sitTrial?.response || {};
+
+    finalRows.push([
+      trialNum,
+      sexe,
+      imageId,
+      imageType,
+      imageFormat,
+
+      emo.espoir || "",
+      emo.tristesse || "",
+      emo.peur || "",
+      emo.colere || "",
+      emo.joie || "",
+      emo.autre || "",
+
+      dat.dat_approach || "",
+      dat.dat_confrontation || "",
+      dat.dat_withdraw || "",
+      dat.dat_freeze || "",
+
+      sit.sit_controle || "",
+      sit.sit_aide || "",
+      sit.sit_consequences || ""
+    ]);
+  });
+
+  /* ============================
+     4️⃣ Définir les colonnes EXACTES
+  ============================ */
+
+  const headers = [
+    "num_trial",
+    "sexe",
+    "image_id",
+    "image_type",
+    "image_format",
+    "curseur_espoir",
+    "curseur_tristesse",
+    "curseur_peur",
+    "curseur_colere",
+    "curseur_joie",
+    "curseur_autre",
+    "curseur_dat_approach",
+    "curseur_dat_confrontation",
+    "curseur_dat_withdraw",
+    "curseur_dat_freeze",
+    "curseur_sit_controle",
+    "curseur_sit_aide",
+    "curseur_sit_consequences"
+  ];
+
+  /* ============================
+     5️⃣ Générer le CSV propre
+  ============================ */
 
   const csv = [
-    headers.join(','),
-    ...rows.map(r =>
-      headers.map(h => {
-        const v = r[h] !== undefined ? r[h] : '';
-        const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-        return '"' + s.replace(/"/g, '""') + '"';
-      }).join(',')
-    ),
-  ].join('\n');
+    headers.join(","),
+    ...finalRows.map(r =>
+      r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")
+    )
+  ].join("\n");
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = 'YC5_data_' + new Date().toISOString().replace(/[:.]/g,'-') + '.csv';
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "YC6_data_" +
+               new Date().toISOString().replace(/[:.]/g,"-") +
+               ".csv";
   a.click();
 }
 </script>
 </body>
 </html>
-
