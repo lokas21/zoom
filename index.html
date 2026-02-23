@@ -698,7 +698,6 @@ shuffledImages.forEach((imgData, idx) => {
     makeSituationTrial(imgData, 'post_zoom', trialNum),
   );
 
-  /* Toutes les 10 images uniques (=> 20 présentations) : 20/80, 40/80, 60/80 */
   if (trialNum % 10 === 0 && trialNum < 40) {
     trialTimeline.push(makeProgressSlide(trialNum * 2));
   }
@@ -715,12 +714,62 @@ const debriefSlide = {
   data: { phase: 'debrief' },
 };
 
-/* ✅ Slide de fin (7) : 25 secondes */
-const goodbye = {
+/* ==========================================================================
+   ✅ AJOUT 1 : Slide lien OneDrive (nouvel onglet) + Enter
+   ========================================================================== */
+const ONEDRIVE_UPLOAD_URL = "https://onedrive.live.com/?id=%2Fpersonal%2Fb82c449d30ad29f9%2FDocuments%2FYC6%5Fdata&viewid=ea523e3c%2D45c0%2D4b37%2Db11b%2De0846f5cee59&view=0";
+
+const uploadLinkSlide = {
   type: jsPsychHtmlKeyboardResponse,
-  stimulus: '<img src="slides/slide7.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+  stimulus: `
+    <div style="color:#fff; max-width:980px; margin:0 auto; padding:40px; line-height:1.7; font-size:20px;">
+      <p style="margin-bottom:18px;"><b>En cliquant sur ce lien, une nouvelle page s'ouvrira.</b></p>
+
+      <p style="margin-bottom:18px;">
+        <a href="${ONEDRIVE_UPLOAD_URL}" target="_blank" rel="noopener noreferrer"
+           style="color:#9fd3ff; text-decoration:underline; font-size:22px;">
+          Ouvrir la page OneDrive de dépôt
+        </a>
+      </p>
+
+      <p style="margin-bottom:0;">
+        Cliquez dessus, puis revenez sur l'onglet de l'expérience et appuyez sur <b>ENTER</b>
+        pour les instructions d'obtention du crédit.
+      </p>
+    </div>
+  `,
+  choices: ['Enter'],
+  data: { phase: 'upload_link' },
+};
+
+/* ==========================================================================
+   ✅ AJOUT 2 : Dernière slide d'instructions crédit (20s, NO_KEYS)
+   ========================================================================== */
+const creditInstructionsSlide = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div style="color:#fff; max-width:980px; margin:0 auto; padding:40px; line-height:1.7; font-size:20px;">
+      <p style="margin-bottom:18px;"><b>Cette page se fermera automatiquement.</b></p>
+
+      <p style="margin-bottom:18px;">
+        À ce moment-là, un fichier CSV sera téléchargé sur votre ordinateur :
+        <b>YC6_data_&lt;horodatage&gt;.csv</b>
+      </p>
+
+      <p style="margin-bottom:18px;">
+        <b>Important :</b><br>
+        Veuillez déposer ce fichier sur la page OneDrive ouverte précédemment.
+        (le lien se trouve également sur Moodle dans la section de l'expérience YC6)
+      </p>
+
+      <p style="margin-bottom:0;">
+        Votre crédit de participation SONA sera validé après réception du fichier.
+      </p>
+    </div>
+  `,
   choices: 'NO_KEYS',
-  trial_duration: 25000, // 25 000 ms = 25 s
+  trial_duration: 20000,
+  data: { phase: 'credit_instructions' },
 };
 
 /* ----- Timeline finale ----- */
@@ -731,8 +780,9 @@ jsPsych.run([
   sexeQuestion,
   introSlides,
   ...trialTimeline,
-  debriefSlide,  // ✅ Enter pour sortir
-  goodbye,       // ✅ 25 s
+  debriefSlide,
+  uploadLinkSlide,          // ✅ lien + Enter
+  creditInstructionsSlide   // ✅ 20s, fermeture auto
 ]);
 
 /* ==========================================================================
@@ -742,15 +792,9 @@ function saveData() {
 
   const allData = jsPsych.data.get().values();
 
-  /* ============================
-     1️⃣ Récupérer le sexe
-  ============================ */
   const demo = allData.find(d => d.phase === "demographics");
   const sexe = demo?.response?.sexe || "";
 
-  /* ============================
-     2️⃣ Récupérer uniquement les essais image (original + zoomed)
-  ============================ */
   const imageTrials = allData
     .filter(d => d.phase === "image_normal" || d.phase === "image_zoom")
     .sort((a,b) => {
@@ -760,9 +804,6 @@ function saveData() {
       return pa - pb;
     });
 
-  /* ============================
-     3️⃣ Construire les 80 lignes propres
-  ============================ */
   const finalRows = [];
 
   imageTrials.forEach(imgTrial => {
@@ -772,7 +813,6 @@ function saveData() {
     const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
     const imageFormat = imgTrial.phase === "image_normal" ? "original" : "zoomed";
 
-    /* Récupérer les réponses associées à CE trial et CE format */
     const emotionTrial = allData.find(d =>
       d.phase === `emotion_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
       && d.trial_num === trialNum
@@ -817,9 +857,6 @@ function saveData() {
     ]);
   });
 
-  /* ============================
-     4️⃣ Définir les colonnes EXACTES
-  ============================ */
   const headers = [
     "num_trial",
     "sexe",
@@ -841,9 +878,6 @@ function saveData() {
     "curseur_sit_consequences"
   ];
 
-  /* ============================
-     5️⃣ Générer le CSV propre
-  ============================ */
   const csv = [
     headers.join(","),
     ...finalRows.map(r =>
