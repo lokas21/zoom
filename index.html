@@ -579,7 +579,7 @@ const SLIDE_PATHS = [
   'slides/slide5.png',
   'slides/slide6.png',
   'slides/slide7.png',
-  'slides/slide_debrief.png', // ✅ AJOUT (debrief)
+  'slides/debrief.png',
 ];
 
 /* ----- Préchargement ----- */
@@ -710,7 +710,7 @@ trialTimeline.push(makeProgressSlide(80));
 /* ✅ Slide debrief (sortie avec Enter) */
 const debriefSlide = {
   type: jsPsychHtmlKeyboardResponse,
-  stimulus: '<img src="slides/slide_debrief.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+  stimulus: '<img src="slides/debrief.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
   choices: ['Enter'],
   data: { phase: 'debrief' },
 };
