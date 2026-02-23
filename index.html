@@ -119,9 +119,6 @@ const DAT_DRAWINGS = {
 
 /* ==========================================================================
    SECTION 2 — LISTE D'IMAGES
-   ==========================================================================
-   Chaque objet : { emotion, image_id, filename, folder, zoomX, zoomY }
-   zoomX / zoomY sont en pixels dans l'image originale.
    ========================================================================== */
 
 const IMAGE_LIST = [
@@ -267,10 +264,11 @@ function randomPick(arr) {
 }
 
 /* ==========================================================================
-   (Optionnel) SONA — récupérer sona_id pour le stocker dans les données
-   NOTE: ici, on NE redirige PAS automatiquement vers SONA, pour rester cohérent
-   avec le texte "validé après réception du fichier".
+   SONA — sona_id + redirection auto
    ========================================================================== */
+
+const SONA_COMPLETION_BASE =
+  "https://unil-ip.sona-systems.com/webstudy_credit.aspx?experiment_id=281&credit_token=eb72de8b5eea497e830cb4f3c1b46236&survey_code=";
 
 function getSonaIdFromUrl() {
   try {
@@ -280,6 +278,124 @@ function getSonaIdFromUrl() {
   } catch (e) {
     return "";
   }
+}
+
+/* ==========================================================================
+   GOOGLE SHEETS — endpoint Apps Script (Option A)
+   ========================================================================== */
+
+const DATA_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbzrqYl5Yxrv2sc9B1PFR80nK3WDrKTudrsj9t3c9RD8i9fj9cARwKL5O6HfyCEqlFWC/exec";
+
+function buildFinalRowsAndHeaders() {
+
+  const allData = jsPsych.data.get().values();
+
+  const demo = allData.find(d => d.phase === "demographics");
+  const sexe = demo?.response?.sexe || "";
+
+  const imageTrials = allData
+    .filter(d => d.phase === "image_normal" || d.phase === "image_zoom")
+    .sort((a,b) => {
+      if (a.trial_num !== b.trial_num) return a.trial_num - b.trial_num;
+      const pa = (a.phase === "image_normal") ? 0 : 1;
+      const pb = (b.phase === "image_normal") ? 0 : 1;
+      return pa - pb;
+    });
+
+  const finalRows = [];
+
+  imageTrials.forEach(imgTrial => {
+
+    const trialNum = imgTrial.trial_num;
+    const imageId = imgTrial.image_id;
+    const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
+    const imageFormat = imgTrial.phase === "image_normal" ? "original" : "zoomed";
+
+    const emotionTrial = allData.find(d =>
+      d.phase === `emotion_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
+      && d.trial_num === trialNum
+    );
+
+    const datTrial = allData.find(d =>
+      d.phase === `dat_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
+      && d.trial_num === trialNum
+    );
+
+    const sitTrial = allData.find(d =>
+      d.phase === `situation_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
+      && d.trial_num === trialNum
+    );
+
+    const emo = emotionTrial?.response || {};
+    const dat = datTrial?.response || {};
+    const sit = sitTrial?.response || {};
+
+    finalRows.push([
+      trialNum,
+      sexe,
+      imageId,
+      imageType,
+      imageFormat,
+
+      emo.espoir || "",
+      emo.tristesse || "",
+      emo.peur || "",
+      emo.colere || "",
+      emo.joie || "",
+      emo.autre || "",
+
+      dat.dat_approach || "",
+      dat.dat_confrontation || "",
+      dat.dat_withdraw || "",
+      dat.dat_freeze || "",
+
+      sit.sit_controle || "",
+      sit.sit_aide || "",
+      sit.sit_consequences || ""
+    ]);
+  });
+
+  const headers = [
+    "num_trial",
+    "sexe",
+    "image_id",
+    "image_type",
+    "image_format",
+    "curseur_espoir",
+    "curseur_tristesse",
+    "curseur_peur",
+    "curseur_colere",
+    "curseur_joie",
+    "curseur_autre",
+    "curseur_dat_approach",
+    "curseur_dat_confrontation",
+    "curseur_dat_withdraw",
+    "curseur_dat_freeze",
+    "curseur_sit_controle",
+    "curseur_sit_aide",
+    "curseur_sit_consequences"
+  ];
+
+  return { headers, finalRows };
+}
+
+function sendRowsToGoogleSheet() {
+  const sona_id = getSonaIdFromUrl() || "";
+  const submitted_at = new Date().toISOString();
+
+  const { headers, finalRows } = buildFinalRowsAndHeaders();
+
+  fetch(DATA_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sona_id,
+      submitted_at,
+      headers,
+      rows: finalRows
+    })
+  }).catch(() => {});
 }
 
 /* ==========================================================================
@@ -525,11 +641,24 @@ function makeSituationTrial(imgData, phase, trialNum) {
 
 const jsPsych = initJsPsych({
   on_finish: function() {
-    // Téléchargement CSV à la fin
-    saveData();
+
+    // ✅ 1) envoi automatique vers Google Sheet (Option A)
+    sendRowsToGoogleSheet();
+
+    // ✅ 2) redirection SONA automatique (si sona_id présent)
+    const sona_id = getSonaIdFromUrl();
+    if (sona_id) {
+      // délai pour laisser le POST partir
+      setTimeout(function() {
+        window.location.assign(
+          SONA_COMPLETION_BASE + encodeURIComponent(sona_id)
+        );
+      }, 1500);
+    }
   },
 });
 
+// (optionnel) garder sona_id dans les données jsPsych (utile pour debug)
 const sona_id_for_data = getSonaIdFromUrl();
 if (sona_id_for_data) {
   jsPsych.data.addProperties({ sona_id: sona_id_for_data });
@@ -561,7 +690,7 @@ const allDatPaths = Object.values(DAT_DRAWINGS).flat();
 
 /* Slides à précharger */
 const SLIDE_PATHS = [
-  'slides/slide_informations.png',  // ✅ ajouté
+  'slides/slide_informations.png',
   'slides/slide1.png',
   'slides/slide2.png',
   'slides/slide3.png',
@@ -685,7 +814,8 @@ shuffledImages.forEach((imgData, idx) => {
     makeZoomTrial(imgData, trialNum),
     makeEmotionTrial(imgData, trialNum, 'post_zoom'),
     makeDatTrial(imgData, 'post_zoom', trialNum),
-    makeSituationTrial(imgData, trialNum, 'post_zoom')
+    // ✅ correction (bug dans ton code : paramètres inversés)
+    makeSituationTrial(imgData, 'post_zoom', trialNum)
   );
 
   if (trialNum % 10 === 0 && trialNum < 40) {
@@ -705,7 +835,8 @@ const debriefSlide = {
 };
 
 /* ==========================================================================
-   ✅ Slide lien OneDrive (nouvel onglet) + Enter
+   ✅ Slide lien (nouvel onglet) + Enter
+   NOTE: tu peux la supprimer si tu ne veux plus de dépôt manuel.
    ========================================================================== */
 const ONEDRIVE_UPLOAD_URL = "https://onedrive.live.com/?id=%2Fpersonal%2Fb82c449d30ad29f9%2FDocuments%2FYC6%5Fdata&viewid=ea523e3c%2D45c0%2D4b37%2Db11b%2De0846f5cee59&view=0";
 
@@ -723,8 +854,7 @@ const uploadLinkSlide = {
       </p>
 
       <p style="margin-bottom:0;">
-        Cliquez dessus, puis revenez sur l'onglet de l'expérience et appuyez sur <b>ENTER</b>
-        pour les instructions d'obtention du crédit.
+        Cliquez dessus, puis revenez sur l'onglet de l'expérience et appuyez sur <b>ENTER</b>.
       </p>
     </div>
   `,
@@ -733,7 +863,8 @@ const uploadLinkSlide = {
 };
 
 /* ==========================================================================
-   ✅ Dernière slide d'instructions crédit (20s, NO_KEYS)
+   ✅ Dernière slide d'instructions (20s, NO_KEYS)
+   (texte mis à jour : plus de téléchargement local)
    ========================================================================== */
 const creditInstructionsSlide = {
   type: jsPsychHtmlKeyboardResponse,
@@ -742,18 +873,11 @@ const creditInstructionsSlide = {
       <p style="margin-bottom:18px;"><b>Cette page se fermera automatiquement.</b></p>
 
       <p style="margin-bottom:18px;">
-        À ce moment-là, un fichier CSV sera téléchargé sur votre ordinateur :
-        <b>YC6_data_&lt;horodatage&gt;.csv</b>
-      </p>
-
-      <p style="margin-bottom:18px;">
-        <b>Important :</b><br>
-        Veuillez déposer ce fichier sur la page OneDrive ouverte précédemment.
-        (le lien se trouve également sur Moodle dans la section de l'expérience YC6)
+        Vos réponses sont envoyées automatiquement et de façon sécurisée vers le serveur de l’étude.
       </p>
 
       <p style="margin-bottom:0;">
-        Votre crédit de participation SONA sera validé après réception du fichier.
+        Vous allez maintenant être redirigé(e) vers SONA pour valider votre crédit de participation.
       </p>
     </div>
   `,
@@ -776,113 +900,10 @@ jsPsych.run([
 ]);
 
 /* ==========================================================================
-   SECTION 6 — SAUVEGARDE DES DONNÉES (CSV)
+   (SUPPRIMÉ) SECTION 6 — SAUVEGARDE CSV
+   -> plus de saveData() : tout est envoyé au Google Sheet
    ========================================================================== */
-function saveData() {
 
-  const allData = jsPsych.data.get().values();
-
-  const demo = allData.find(d => d.phase === "demographics");
-  const sexe = demo?.response?.sexe || "";
-
-  const imageTrials = allData
-    .filter(d => d.phase === "image_normal" || d.phase === "image_zoom")
-    .sort((a,b) => {
-      if (a.trial_num !== b.trial_num) return a.trial_num - b.trial_num;
-      const pa = (a.phase === "image_normal") ? 0 : 1;
-      const pb = (b.phase === "image_normal") ? 0 : 1;
-      return pa - pb;
-    });
-
-  const finalRows = [];
-
-  imageTrials.forEach(imgTrial => {
-
-    const trialNum = imgTrial.trial_num;
-    const imageId = imgTrial.image_id;
-    const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
-    const imageFormat = imgTrial.phase === "image_normal" ? "original" : "zoomed";
-
-    const emotionTrial = allData.find(d =>
-      d.phase === `emotion_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
-      && d.trial_num === trialNum
-    );
-
-    const datTrial = allData.find(d =>
-      d.phase === `dat_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
-      && d.trial_num === trialNum
-    );
-
-    const sitTrial = allData.find(d =>
-      d.phase === `situation_${imageFormat === "original" ? "pre_zoom" : "post_zoom"}`
-      && d.trial_num === trialNum
-    );
-
-    const emo = emotionTrial?.response || {};
-    const dat = datTrial?.response || {};
-    const sit = sitTrial?.response || {};
-
-    finalRows.push([
-      trialNum,
-      sexe,
-      imageId,
-      imageType,
-      imageFormat,
-
-      emo.espoir || "",
-      emo.tristesse || "",
-      emo.peur || "",
-      emo.colere || "",
-      emo.joie || "",
-      emo.autre || "",
-
-      dat.dat_approach || "",
-      dat.dat_confrontation || "",
-      dat.dat_withdraw || "",
-      dat.dat_freeze || "",
-
-      sit.sit_controle || "",
-      sit.sit_aide || "",
-      sit.sit_consequences || ""
-    ]);
-  });
-
-  const headers = [
-    "num_trial",
-    "sexe",
-    "image_id",
-    "image_type",
-    "image_format",
-    "curseur_espoir",
-    "curseur_tristesse",
-    "curseur_peur",
-    "curseur_colere",
-    "curseur_joie",
-    "curseur_autre",
-    "curseur_dat_approach",
-    "curseur_dat_confrontation",
-    "curseur_dat_withdraw",
-    "curseur_dat_freeze",
-    "curseur_sit_controle",
-    "curseur_sit_aide",
-    "curseur_sit_consequences"
-  ];
-
-  const csv = [
-    headers.join(","),
-    ...finalRows.map(r =>
-      r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")
-    )
-  ].join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "YC6_data_" +
-               new Date().toISOString().replace(/[:.]/g,"-") +
-               ".csv";
-  a.click();
-}
 </script>
 </body>
 </html>
