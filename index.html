@@ -32,13 +32,12 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  /* Ajuste légèrement si besoin selon ton navigateur */
   top: 9px;
   width: 2px;
   height: 14px;
-  background: #ffffff;     /* ou #aaa si tu préfères plus discret */
+  background: #ffffff;
   opacity: 0.8;
-  pointer-events: none;    /* ne bloque jamais l’interaction */
+  pointer-events: none;
   border-radius: 1px;
 }
 
@@ -119,10 +118,11 @@ const DAT_DRAWINGS = {
 };
 
 /* ==========================================================================
-   SECTION 2 — LISTE D'IMAGES  (générée automatiquement depuis emotion_file_8_essais.xlsx)
+   SECTION 2 — LISTE D'IMAGES
    ==========================================================================
    Chaque objet : { emotion, image_id, filename, folder, zoomX, zoomY }
-   zoomX / zoomY sont en pixels dans l'image originale.                      */
+   zoomX / zoomY sont en pixels dans l'image originale.
+   ========================================================================== */
 
 const IMAGE_LIST = [
   {emotion:"sadness",image_id:"sadness_00001.JPG",filename:"sadness_00001.JPG",folder:"sadness",zoomX:1034.8,zoomY:268.07},
@@ -267,6 +267,25 @@ function randomPick(arr) {
 }
 
 /* ==========================================================================
+   SONA — Récupération sona_id + URL crédit automatique
+   ========================================================================== */
+
+/* URL Sona (Completion URL client-side, sans XXX final) */
+const SONA_COMPLETION_BASE =
+  "https://unil-ip.sona-systems.com/webstudy_credit.aspx?experiment_id=281&credit_token=eb72de8b5eea497e830cb4f3c1b46236&survey_code=";
+
+/* Récupérer sona_id depuis l’URL (?sona_id=XXXX) */
+function getSonaIdFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('sona_id');
+    return v ? v : "";
+  } catch (e) {
+    return "";
+  }
+}
+
+/* ==========================================================================
    SECTION 4 — CONSTRUCTEURS DE TRIALS
    ========================================================================== */
 
@@ -399,7 +418,6 @@ function makeDatTrial(imgData, phase, trialNum) {
     const drawings = catKeys.map(k => randomPick(DAT_DRAWINGS[k]));
     window._datState = { catKeys, drawings };
 
-    /* Toujours la même consigne */
     const header =
       'Pendant que vous regardiez la dernière image, dans quelle mesure aviez-vous envie d\'agir comme la personne représentée sur chacun de ces dessins ?';
 
@@ -509,7 +527,23 @@ function makeSituationTrial(imgData, phase, trialNum) {
    ========================================================================== */
 
 const jsPsych = initJsPsych({
-  on_finish: function() { saveData(); },
+  on_finish: function() {
+
+    // 1) téléchargement CSV
+    saveData();
+
+    // 2) redirection Sona (si sona_id présent)
+    const sona_id = getSonaIdFromUrl();
+
+    if (sona_id) {
+      // petit délai pour laisser le téléchargement se déclencher
+      setTimeout(function() {
+        window.location.assign(
+          SONA_COMPLETION_BASE + encodeURIComponent(sona_id)
+        );
+      }, 800);
+    }
+  },
 });
 
 /* ---- Sélection 40 images uniques : 20 hope + 20 sadness ---- */
@@ -545,6 +579,7 @@ const SLIDE_PATHS = [
   'slides/slide5.png',
   'slides/slide6.png',
   'slides/slide7.png',
+  'slides/slide_debrief.png', // ✅ AJOUT (debrief)
 ];
 
 /* ----- Préchargement ----- */
@@ -561,6 +596,7 @@ const informationSlide = {
   stimulus: '<img src="slides/slide_informations.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
   choices: ['Enter']
 };
+
 /* ----- Slide consentement ----- */
 const consentSlide = {
   type: jsPsychSurveyHtmlForm,
@@ -662,19 +698,29 @@ shuffledImages.forEach((imgData, idx) => {
     makeSituationTrial(imgData, 'post_zoom', trialNum),
   );
 
-  /* Toutes les 10 images uniques (=> 20 présentations) : 20/80, 40/80, 60/80
-     (pas de slide 80/80 car tu as déjà la slide finale) */
+  /* Toutes les 10 images uniques (=> 20 présentations) : 20/80, 40/80, 60/80 */
   if (trialNum % 10 === 0 && trialNum < 40) {
     trialTimeline.push(makeProgressSlide(trialNum * 2));
   }
 });
 
-/* ----- Slide de fin (7) : 30 secondes ----- */
+/* ✅ FIN DE BOUCLE : afficher 80/80 */
+trialTimeline.push(makeProgressSlide(80));
+
+/* ✅ Slide debrief (sortie avec Enter) */
+const debriefSlide = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: '<img src="slides/slide_debrief.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
+  choices: ['Enter'],
+  data: { phase: 'debrief' },
+};
+
+/* ✅ Slide de fin (7) : 25 secondes */
 const goodbye = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: '<img src="slides/slide7.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
   choices: 'NO_KEYS',
-  trial_duration: 30000, // 30 000 ms = 30 s
+  trial_duration: 25000, // 25 000 ms = 25 s
 };
 
 /* ----- Timeline finale ----- */
@@ -685,7 +731,8 @@ jsPsych.run([
   sexeQuestion,
   introSlides,
   ...trialTimeline,
-  goodbye,
+  debriefSlide,  // ✅ Enter pour sortir
+  goodbye,       // ✅ 25 s
 ]);
 
 /* ==========================================================================
@@ -698,39 +745,32 @@ function saveData() {
   /* ============================
      1️⃣ Récupérer le sexe
   ============================ */
-
   const demo = allData.find(d => d.phase === "demographics");
   const sexe = demo?.response?.sexe || "";
 
   /* ============================
-     2️⃣ Récupérer uniquement les essais image
-        (original + zoomed)
+     2️⃣ Récupérer uniquement les essais image (original + zoomed)
   ============================ */
-
- const imageTrials = allData
-  .filter(d => d.phase === "image_normal" || d.phase === "image_zoom")
-  .sort((a,b) => {
-    if (a.trial_num !== b.trial_num) return a.trial_num - b.trial_num;
-    // original avant zoomed
-    const pa = (a.phase === "image_normal") ? 0 : 1;
-    const pb = (b.phase === "image_normal") ? 0 : 1;
-    return pa - pb;
-  });
+  const imageTrials = allData
+    .filter(d => d.phase === "image_normal" || d.phase === "image_zoom")
+    .sort((a,b) => {
+      if (a.trial_num !== b.trial_num) return a.trial_num - b.trial_num;
+      const pa = (a.phase === "image_normal") ? 0 : 1;
+      const pb = (b.phase === "image_normal") ? 0 : 1;
+      return pa - pb;
+    });
 
   /* ============================
      3️⃣ Construire les 80 lignes propres
   ============================ */
-
   const finalRows = [];
 
   imageTrials.forEach(imgTrial => {
 
     const trialNum = imgTrial.trial_num;
     const imageId = imgTrial.image_id;
-const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
-    const imageFormat = imgTrial.phase === "image_normal"
-      ? "original"
-      : "zoomed";
+    const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
+    const imageFormat = imgTrial.phase === "image_normal" ? "original" : "zoomed";
 
     /* Récupérer les réponses associées à CE trial et CE format */
     const emotionTrial = allData.find(d =>
@@ -780,7 +820,6 @@ const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
   /* ============================
      4️⃣ Définir les colonnes EXACTES
   ============================ */
-
   const headers = [
     "num_trial",
     "sexe",
@@ -805,7 +844,6 @@ const imageType = imgTrial.emotion_type === "hope" ? "h" : "s";
   /* ============================
      5️⃣ Générer le CSV propre
   ============================ */
-
   const csv = [
     headers.join(","),
     ...finalRows.map(r =>
