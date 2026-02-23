@@ -267,14 +267,11 @@ function randomPick(arr) {
 }
 
 /* ==========================================================================
-   SONA — Récupération sona_id + URL crédit automatique
+   (Optionnel) SONA — récupérer sona_id pour le stocker dans les données
+   NOTE: ici, on NE redirige PAS automatiquement vers SONA, pour rester cohérent
+   avec le texte "validé après réception du fichier".
    ========================================================================== */
 
-/* URL Sona (Completion URL client-side, sans XXX final) */
-const SONA_COMPLETION_BASE =
-  "https://unil-ip.sona-systems.com/webstudy_credit.aspx?experiment_id=281&credit_token=eb72de8b5eea497e830cb4f3c1b46236&survey_code=";
-
-/* Récupérer sona_id depuis l’URL (?sona_id=XXXX) */
 function getSonaIdFromUrl() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -375,7 +372,7 @@ function makeEmotionTrial(imgData, trialNum, phaseLabel) {
     const rows = order.map(i => {
       const def = EMOTION_DEFS[i];
       return '<div class="emo-row"><div class="emo-label">' + def.label + '</div>' +
-        '<div class="emo-slider-wrap"><input type="range" name="' + def.name + '" class="emo-slider" min="0" max="100" step="1" value="0">' +
+        '<div class="emo-slider-wrap"><input type="range" name="' + def.name + '" class="emo-slider" min="0" max="100" step="0.1" value="0">' +
         '<div class="slider-tick-labels"><span>Pas du tout</span><span>Extrêmement</span></div></div></div>';
     }).join('');
 
@@ -487,7 +484,7 @@ function makeSituationTrial(imgData, phase, trialNum) {
     const rows = order.map(i => {
       const def = SIT_DEFS[i];
       return '<div class="sit-row"><p class="sit-question">' + def.text + '</p>' +
-        '<div class="sit-slider-wrap"><input type="range" name="' + def.name + '" class="sit-slider" min="0" max="100" step="1" value="0">' +
+        '<div class="sit-slider-wrap"><input type="range" name="' + def.name + '" class="sit-slider" min="0" max="100" step="0.1" value="0">' +
         '<div class="slider-tick-labels"><span>' + def.left + '</span><span>' + def.right + '</span></div></div></div>';
     }).join('');
     return '<div class="module-container"><p class="module-header">En vous projetant dans la situation représentée par l\'image…</p>' + rows +
@@ -528,23 +525,15 @@ function makeSituationTrial(imgData, phase, trialNum) {
 
 const jsPsych = initJsPsych({
   on_finish: function() {
-
-    // 1) téléchargement CSV
+    // Téléchargement CSV à la fin
     saveData();
-
-    // 2) redirection Sona (si sona_id présent)
-    const sona_id = getSonaIdFromUrl();
-
-    if (sona_id) {
-      // petit délai pour laisser le téléchargement se déclencher
-      setTimeout(function() {
-        window.location.assign(
-          SONA_COMPLETION_BASE + encodeURIComponent(sona_id)
-        );
-      }, 800);
-    }
   },
 });
+
+const sona_id_for_data = getSonaIdFromUrl();
+if (sona_id_for_data) {
+  jsPsych.data.addProperties({ sona_id: sona_id_for_data });
+}
 
 /* ---- Sélection 40 images uniques : 20 hope + 20 sadness ---- */
 function sampleWithoutReplacement(arr, n) {
@@ -572,6 +561,7 @@ const allDatPaths = Object.values(DAT_DRAWINGS).flat();
 
 /* Slides à précharger */
 const SLIDE_PATHS = [
+  'slides/slide_informations.png',  // ✅ ajouté
   'slides/slide1.png',
   'slides/slide2.png',
   'slides/slide3.png',
@@ -695,7 +685,7 @@ shuffledImages.forEach((imgData, idx) => {
     makeZoomTrial(imgData, trialNum),
     makeEmotionTrial(imgData, trialNum, 'post_zoom'),
     makeDatTrial(imgData, 'post_zoom', trialNum),
-    makeSituationTrial(imgData, 'post_zoom', trialNum),
+    makeSituationTrial(imgData, trialNum, 'post_zoom')
   );
 
   if (trialNum % 10 === 0 && trialNum < 40) {
@@ -715,7 +705,7 @@ const debriefSlide = {
 };
 
 /* ==========================================================================
-   ✅ AJOUT 1 : Slide lien OneDrive (nouvel onglet) + Enter
+   ✅ Slide lien OneDrive (nouvel onglet) + Enter
    ========================================================================== */
 const ONEDRIVE_UPLOAD_URL = "https://onedrive.live.com/?id=%2Fpersonal%2Fb82c449d30ad29f9%2FDocuments%2FYC6%5Fdata&viewid=ea523e3c%2D45c0%2D4b37%2Db11b%2De0846f5cee59&view=0";
 
@@ -743,7 +733,7 @@ const uploadLinkSlide = {
 };
 
 /* ==========================================================================
-   ✅ AJOUT 2 : Dernière slide d'instructions crédit (20s, NO_KEYS)
+   ✅ Dernière slide d'instructions crédit (20s, NO_KEYS)
    ========================================================================== */
 const creditInstructionsSlide = {
   type: jsPsychHtmlKeyboardResponse,
@@ -781,8 +771,8 @@ jsPsych.run([
   introSlides,
   ...trialTimeline,
   debriefSlide,
-  uploadLinkSlide,          // ✅ lien + Enter
-  creditInstructionsSlide   // ✅ 20s, fermeture auto
+  uploadLinkSlide,
+  creditInstructionsSlide
 ]);
 
 /* ==========================================================================
