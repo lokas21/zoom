@@ -879,15 +879,18 @@ const debriefSlide = {
 /* ==========================================================================
    ✅ Slide lien (nouvel onglet) + Enter
    ========================================================================== */
-
-const PCLOUD_UPLOAD_URL =
-  "https://e.pcloud.com/#/puplink?code=7TP7ZK5425SLg1pSSJQA1rDgbtjJf7ncV";
-
 const uploadLinkSlide = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: `
     <div style="color:#fff; max-width:980px; margin:0 auto; padding:40px; line-height:1.7; font-size:20px;">
-      <p style="margin-bottom:18px;"><b>En cliquant sur ce lien, une nouvelle page s'ouvrira.</b></p>
+      <p style="margin-bottom:18px;">
+        <b>En cliquant sur le lien ci-dessous, une nouvelle page va s’ouvrir.</b><br>
+        Sur cette page, vous pourrez déposer le fichier CSV contenant vos réponses.
+        <br>
+        <span style="color:#cccccc; font-size:18px;">
+          Le fichier CSV se téléchargera automatiquement sur votre ordinateur à l’écran suivant.
+        </span>
+      </p>
 
       <p style="margin-bottom:18px;">
         <a href="${PCLOUD_UPLOAD_URL}" target="_blank" rel="noopener noreferrer"
@@ -897,7 +900,7 @@ const uploadLinkSlide = {
       </p>
 
       <p style="margin-bottom:0;">
-        Cliquez dessus, puis revenez sur l'onglet de l'expérience et appuyez sur <b>ENTER</b>.
+        Ouvrez le lien, puis revenez sur l’onglet de l’expérience et appuyez sur <b>ENTRÉE</b>.
       </p>
     </div>
   `,
