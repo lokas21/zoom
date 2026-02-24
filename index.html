@@ -879,21 +879,23 @@ const debriefSlide = {
 /* ==========================================================================
    ✅ Slide lien (nouvel onglet) + Enter
    ========================================================================== */
+const PCLOUD_UPLOAD_URL =
+  "https://e.pcloud.com/#/puplink?code=7TP7ZK5425SLg1pSSJQA1rDgbtjJf7ncV";
+
 const uploadLinkSlide = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: `
     <div style="color:#fff; max-width:980px; margin:0 auto; padding:40px; line-height:1.7; font-size:20px;">
       <p style="margin-bottom:18px;">
         <b>En cliquant sur le lien ci-dessous, une nouvelle page va s’ouvrir.</b><br>
-        Sur cette page, vous pourrez déposer le fichier CSV contenant vos réponses.
-        <br>
+        Sur cette page, vous pourrez déposer le fichier CSV contenant vos réponses.<br>
         <span style="color:#cccccc; font-size:18px;">
           Le fichier CSV se téléchargera automatiquement sur votre ordinateur à l’écran suivant.
         </span>
       </p>
 
       <p style="margin-bottom:18px;">
-        <a href="${https://e.pcloud.com/#/puplink?code=7TP7ZK5425SLg1pSSJQA1rDgbtjJf7ncV}" target="_blank" rel="noopener noreferrer"
+        <a href="${PCLOUD_UPLOAD_URL}" target="_blank" rel="noopener noreferrer"
            style="color:#9fd3ff; text-decoration:underline; font-size:22px;">
           Ouvrir la page pCloud de dépôt
         </a>
