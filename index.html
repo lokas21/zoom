@@ -734,6 +734,23 @@ const preload = {
   message: '<p style="color:#fff">Chargement des images…</p>',
 };
 
+/* ==========================================================================
+   ✅ NOUVELLE SLIDE : Plein écran (5 secondes)
+   ========================================================================== */
+const fullscreenPromptSlide = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div style="color:#fff; height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:40px;">
+      <div style="font-size:44px; font-weight:800; line-height:1.25;">
+        VEUILLEZ METTRE CETTE PAGE EN PLEIN ÉCRAN
+      </div>
+    </div>
+  `,
+  choices: 'NO_KEYS',
+  trial_duration: 5000,
+  data: { phase: 'fullscreen_prompt' },
+};
+
 /* ----- Slide informations (Enter) ----- */
 const informationSlide = {
   type: jsPsychHtmlKeyboardResponse,
@@ -896,10 +913,10 @@ const creditInstructionsSlide = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: `
     <div style="color:#fff; max-width:980px; margin:0 auto; padding:40px; line-height:1.7; font-size:20px;">
-      <p style="margin-bottom:18px;"><b>Cette page se fermera automatiquement.</b></p>
+      <p style="margin-bottom:18px;"><b>Cette page se fermera automatiquement dans 20 secondes.</b></p>
 
       <p style="margin-bottom:18px;">
-        Un fichier CSV va se télécharger sur votre ordinateur. Vous pourrez déposer ce fichier sur le lien qui s'est ouvert dans un nouvel onglet. Vous pouvez signer "x".
+        Un fichier CSV va se télécharger sur votre ordinateur. Vous pourrez déposer ce fichier sur le lien qui s'est ouvert dans un nouvel onglet. Vous pouvez signer "YC6" à l'endroit où votre nom est demandé afin de conserver votre anonymat.
       </p>
 
       <p style="margin-bottom:0;">
@@ -915,6 +932,7 @@ const creditInstructionsSlide = {
 /* ----- Timeline finale ----- */
 jsPsych.run([
   preload,
+  fullscreenPromptSlide,  /* ✅ AJOUT : 5 secondes avant tout le reste */
   informationSlide,
   consentSlide,
   sexeQuestion,
