@@ -17,14 +17,12 @@
    Marque centrale (50%) sur TOUS les sliders (émotion/situation/DAT)
    ========================================================= */
 
-/* Les wrappers doivent être positionnés pour accueillir la tick */
 .emo-slider-wrap,
 .sit-slider-wrap,
 .dat-slider-wrap {
   position: relative;
 }
 
-/* La tick centrale */
 .emo-slider-wrap::before,
 .sit-slider-wrap::before,
 .dat-slider-wrap::before {
@@ -41,15 +39,12 @@
   border-radius: 1px;
 }
 
-    /* ---- Fond sombre ---- */
     body { background: #3c3c3c; margin: 0; padding: 0; }
     .jspsych-display-element { background: #3c3c3c; }
     .jspsych-content-wrapper { background: #3c3c3c; }
 
-    /* ---- Croix de fixation ---- */
     .fixation { font-size: 80px; color: #ffffff; }
 
-    /* ---- Modules Émotion / Situation (sliders HTML) ---- */
     .module-container { color:#fff; max-width:700px; margin:0 auto; padding:10px; }
     .module-header { font-size:18px; font-weight:bold; margin-bottom:20px; line-height:1.5; }
     .emo-row, .sit-row { display:flex; align-items:center; margin-bottom:18px; gap:20px; }
@@ -57,7 +52,6 @@
     .emo-slider-wrap, .sit-slider-wrap { flex:1; }
     .sit-question { font-size:15px; margin-bottom:8px; }
 
-    /* ---- Module Situation (corrigé : sliders même largeur) ---- */
     .sit-row {
       width: 100%;
       flex-direction: column;
@@ -73,7 +67,6 @@
                    font-size:16px; cursor:pointer; margin-top:20px; border-radius:4px; }
     .jspsych-btn:hover { background:#777; }
 
-    /* ---- Module DAT ---- */
     #dat-container { color: #ffffff; text-align: center; max-width: 1000px; margin: 0 auto; }
     #dat-container .dat-header { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
     #dat-container .dat-subheader { font-size: 15px; margin-bottom: 24px; color: #cccccc; }
@@ -88,7 +81,6 @@
                        font-size: 12px; color: #aaa; margin-top: 2px; }
     #dat-error { color: #ff6666; font-size: 15px; margin-top: 10px; display: none; }
 
-    /* ---- Canvas plein écran ---- */
     canvas { display: block; margin: 0 auto; }
   </style>
 </head>
@@ -281,7 +273,7 @@ function getSonaIdFromUrl() {
 }
 
 /* ==========================================================================
-   (CONSERVÉ) Construction des lignes finales + headers (servira au CSV)
+   Construction des lignes finales + headers
    ========================================================================== */
 
 function buildFinalRowsAndHeaders() {
@@ -378,7 +370,7 @@ function buildFinalRowsAndHeaders() {
 }
 
 /* ==========================================================================
-   SAUVEGARDE CSV — téléchargement local (remplace Google Sheets)
+   UTILITAIRE CSV
    ========================================================================== */
 
 function rowsToCsv(headers, rows) {
@@ -388,39 +380,68 @@ function rowsToCsv(headers, rows) {
     if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
   };
-
   const lines = [];
   lines.push(headers.map(esc).join(','));
   rows.forEach(r => lines.push(r.map(esc).join(',')));
   return lines.join('\n');
 }
 
-function downloadCsvLocal() {
-  const sona_id = getSonaIdFromUrl() || "";
+/* ==========================================================================
+   SAUVEGARDE CSV — upload automatique vers pCloud
+   ========================================================================== */
+
+const PCLOUD_USER     = "lokas21345@gmail.com";
+const PCLOUD_PASS     = "REMPLACE_PAR_TON_MOT_DE_PASSE";
+const PCLOUD_FOLDER_ID = 22617955331;
+
+function uploadCsvToPcloud() {
+  const sona_id      = getSonaIdFromUrl() || "";
   const submitted_at = new Date().toISOString();
 
   const { headers, finalRows } = buildFinalRowsAndHeaders();
-
-  // Ajout de meta-colonnes en début
   const headers2 = ["sona_id", "submitted_at", ...headers];
-  const rows2 = finalRows.map(r => [sona_id, submitted_at, ...r]);
-
-  const csv = rowsToCsv(headers2, rows2);
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
+  const rows2    = finalRows.map(r => [sona_id, submitted_at, ...r]);
+  const csv      = rowsToCsv(headers2, rows2);
 
   const safeSona = sona_id ? sona_id.replace(/[^a-zA-Z0-9_-]/g, '') : 'no_sona';
-  a.download = `YC6_${safeSona}_${submitted_at}.csv`;
+  const filename = "YC6_" + safeSona + "_" + submitted_at + ".csv";
 
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  // 1) Login pCloud → obtenir token
+  fetch(
+    "https://eapi.pcloud.com/userinfo?getauth=1&logout=1" +
+    "&username=" + encodeURIComponent(PCLOUD_USER) +
+    "&password=" + encodeURIComponent(PCLOUD_PASS)
+  )
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    var token = d.auth;
+    if (!token) {
+      console.error("pCloud login échoué:", d);
+      return Promise.reject("login failed");
+    }
 
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+    // 2) Upload CSV dans le dossier YC6
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    var fd   = new FormData();
+    fd.append("file", blob, filename);
+
+    return fetch(
+      "https://eapi.pcloud.com/uploadfile?auth=" + token +
+      "&folderid=" + PCLOUD_FOLDER_ID,
+      { method: "POST", body: fd }
+    );
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.result === 0) {
+      console.log("✅ Upload pCloud réussi:", filename);
+    } else {
+      console.error("❌ Erreur upload pCloud:", d);
+    }
+  })
+  .catch(function(e) {
+    console.error("❌ Erreur réseau pCloud:", e);
+  });
 }
 
 /* ==========================================================================
@@ -503,7 +524,6 @@ function makeZoomTrial(imgData, trialNum) {
   };
 }
 
-/* ---- Module Émotion (6 sliders, AUTRE toujours dernier) ---- */
 function makeEmotionTrial(imgData, trialNum, phaseLabel) {
   function buildHtml() {
     const coreShuf = shuffle([0,1,2,3,4]);
@@ -549,7 +569,6 @@ function makeEmotionTrial(imgData, trialNum, phaseLabel) {
   };
 }
 
-/* ---- Module DAT (4 dessins + 4 sliders 1-5, grille 2x2) ---- */
 function makeDatTrial(imgData, phase, trialNum) {
   function buildDatHtml() {
     const catKeys  = shuffle(['approach','confrontation','freeze','withdraw']);
@@ -617,7 +636,6 @@ function makeDatTrial(imgData, phase, trialNum) {
   };
 }
 
-/* ---- Module Situation (3 sliders HTML, ordre aleatoire) ---- */
 function makeSituationTrial(imgData, phase, trialNum) {
   function buildHtml() {
     const order = shuffle([0,1,2]);
@@ -667,23 +685,21 @@ function makeSituationTrial(imgData, phase, trialNum) {
 const jsPsych = initJsPsych({
   on_finish: function() {
 
-    // ✅ 1) téléchargement local du CSV
-    downloadCsvLocal();
+    // ✅ Upload automatique vers pCloud
+    uploadCsvToPcloud();
 
-    // ✅ 2) redirection SONA automatique (si sona_id présent)
+    // ✅ Redirection SONA automatique après 10 secondes
     const sona_id = getSonaIdFromUrl();
     if (sona_id) {
-      // délai pour laisser le téléchargement se déclencher
       setTimeout(function() {
         window.location.assign(
           SONA_COMPLETION_BASE + encodeURIComponent(sona_id)
         );
-      }, 1500);
+      }, 10000);
     }
   },
 });
 
-// (optionnel) garder sona_id dans les données jsPsych (utile pour debug)
 const sona_id_for_data = getSonaIdFromUrl();
 if (sona_id_for_data) {
   jsPsych.data.addProperties({ sona_id: sona_id_for_data });
@@ -697,23 +713,20 @@ function sampleWithoutReplacement(arr, n) {
   return shuffle(arr).slice(0, n);
 }
 
-const hopePool = IMAGE_LIST.filter(d => d.emotion === 'hope');
+const hopePool    = IMAGE_LIST.filter(d => d.emotion === 'hope');
 const sadnessPool = IMAGE_LIST.filter(d => d.emotion === 'sadness');
 
-const pickedHope = sampleWithoutReplacement(hopePool, 20);
+const pickedHope    = sampleWithoutReplacement(hopePool, 20);
 const pickedSadness = sampleWithoutReplacement(sadnessPool, 20);
 
-const shuffledImages = shuffle([...pickedHope, ...pickedSadness]); // 40 images uniques
+const shuffledImages = shuffle([...pickedHope, ...pickedSadness]);
 
-/* Toutes les images à précharger (uniquement ces 40) */
 const allImagePaths = shuffledImages.map(
   d => CFG.IMG_BASE + d.folder + '/' + d.filename
 );
 
-/* Liste des dessins DAT à précharger */
 const allDatPaths = Object.values(DAT_DRAWINGS).flat();
 
-/* Slides à précharger */
 const SLIDE_PATHS = [
   'slides/slide_informations.png',
   'slides/slide1.png',
@@ -726,7 +739,6 @@ const SLIDE_PATHS = [
   'slides/debrief.png',
 ];
 
-/* ----- Préchargement ----- */
 const preload = {
   type  : jsPsychPreload,
   images: [...allImagePaths, ...allDatPaths, ...SLIDE_PATHS],
@@ -734,9 +746,6 @@ const preload = {
   message: '<p style="color:#fff">Chargement des images…</p>',
 };
 
-/* ==========================================================================
-   ✅ NOUVELLE SLIDE : Plein écran (5 secondes)
-   ========================================================================== */
 const fullscreenPromptSlide = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: `
@@ -751,14 +760,12 @@ const fullscreenPromptSlide = {
   data: { phase: 'fullscreen_prompt' },
 };
 
-/* ----- Slide informations (Enter) ----- */
 const informationSlide = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: '<img src="slides/slide_informations.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
   choices: ['Enter']
 };
 
-/* ----- Slide consentement ----- */
 const consentSlide = {
   type: jsPsychSurveyHtmlForm,
   html: `
@@ -766,9 +773,9 @@ const consentSlide = {
       <p><strong>Dans le cadre d'un consentement de participation, vous acceptez les points suivants.</strong></p>
       <p>Si vous ne consentez pas à une des deux affirmations, vous pouvez quitter la page :</p>
       <br>
-      <p>1. L’utilisation des données à des fins scientifiques et la publication des résultats de la recherche dans des revues ou livres scientifiques, étant entendu que les données resteront anonymes et qu’aucune information ne sera donnée sur mon identité.</p>
+      <p>1. L'utilisation des données à des fins scientifiques et la publication des résultats de la recherche dans des revues ou livres scientifiques, étant entendu que les données resteront anonymes et qu'aucune information ne sera donnée sur mon identité.</p>
       <br>
-      <p>2. L’utilisation des données à des fins pédagogiques (cours et séminaires de formations d’étudiants ou de professionnels soumis au secret professionnel). L'anonymat reste préservé.</p>
+      <p>2. L'utilisation des données à des fins pédagogiques (cours et séminaires de formations d'étudiants ou de professionnels soumis au secret professionnel). L'anonymat reste préservé.</p>
       <br><br>
       <label>
         <input type="checkbox" name="consent" value="yes" required>
@@ -777,12 +784,9 @@ const consentSlide = {
     </div>
   `,
   button_label: "Continuer",
-  on_finish: function(data){
-    data.phase = "consent";
-  }
+  on_finish: function(data){ data.phase = "consent"; }
 };
 
-/* ----- Question sexe ----- */
 const sexeQuestion = {
   type: jsPsychSurveyHtmlForm,
   html: `
@@ -795,12 +799,9 @@ const sexeQuestion = {
     </div>
   `,
   button_label: "Continuer",
-  on_finish: function(data){
-    data.phase = "demographics";
-  }
+  on_finish: function(data){ data.phase = "demographics"; }
 };
 
-/* ----- Slides d'introduction (1 à 6) ----- */
 const introSlides = {
   timeline: [
     { type: jsPsychHtmlKeyboardResponse,
@@ -824,7 +825,6 @@ const introSlides = {
   ],
 };
 
-/* ----- Slide progression (5 secondes) ----- */
 function makeProgressSlide(count) {
   return {
     type: jsPsychHtmlKeyboardResponse,
@@ -839,7 +839,7 @@ function makeProgressSlide(count) {
   };
 }
 
-/* ----- Boucle trials : 40 images uniques => 80 présentations (normal+zoom) ----- */
+/* ----- Boucle trials ----- */
 const trialTimeline = [];
 
 shuffledImages.forEach((imgData, idx) => {
@@ -856,7 +856,6 @@ shuffledImages.forEach((imgData, idx) => {
     makeZoomTrial(imgData, trialNum),
     makeEmotionTrial(imgData, trialNum, 'post_zoom'),
     makeDatTrial(imgData, 'post_zoom', trialNum),
-    // ✅ correction (bug : paramètres inversés)
     makeSituationTrial(imgData, 'post_zoom', trialNum)
   );
 
@@ -865,10 +864,9 @@ shuffledImages.forEach((imgData, idx) => {
   }
 });
 
-/* ✅ FIN DE BOUCLE : afficher 80/80 */
 trialTimeline.push(makeProgressSlide(80));
 
-/* ✅ Slide debrief (sortie avec Enter) */
+/* ✅ Slide debrief */
 const debriefSlide = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: '<img src="slides/debrief.png" style="max-width:100vw;max-height:100vh;display:block;margin:0 auto;">',
@@ -876,83 +874,37 @@ const debriefSlide = {
   data: { phase: 'debrief' },
 };
 
-/* ==========================================================================
-   ✅ Slide lien (nouvel onglet) + Enter
-   ========================================================================== */
-const PCLOUD_UPLOAD_URL =
-  "https://e.pcloud.com/#/puplink?code=7TP7ZK5425SLg1pSSJQA1rDgbtjJf7ncV";
-
-const uploadLinkSlide = {
+/* ✅ Slide finale — merci + redirection SONA dans 10 secondes */
+const finalSlide = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: `
-    <div style="color:#fff; max-width:980px; margin:0 auto; padding:40px; line-height:1.7; font-size:20px;">
-      <p style="margin-bottom:18px;">
-        <b>En cliquant sur le lien ci-dessous, une nouvelle page va s’ouvrir.</b><br>
-        Sur cette page, vous pourrez déposer le fichier CSV contenant vos réponses.<br>
-        <span style="color:#cccccc; font-size:18px;">
-          Le fichier CSV se téléchargera automatiquement sur votre ordinateur à l’écran suivant.
-        </span>
-      </p>
-
-      <p style="margin-bottom:18px;">
-        <a href="${PCLOUD_UPLOAD_URL}" target="_blank" rel="noopener noreferrer"
-           style="color:#9fd3ff; text-decoration:underline; font-size:22px;">
-          Ouvrir la page pCloud de dépôt
-        </a>
-      </p>
-
-      <p style="margin-bottom:0;">
-        Ouvrez le lien, puis revenez sur l’onglet de l’expérience et appuyez sur <b>ENTRÉE</b>.
-      </p>
-    </div>
-  `,
-  choices: ['Enter'],
-  data: { phase: 'upload_link' },
-};
-
-/* ==========================================================================
-   ✅ Dernière slide d'instructions (20s, NO_KEYS)
-   ========================================================================== */
-
-const creditInstructionsSlide = {
-  type: jsPsychHtmlKeyboardResponse,
-  stimulus: `
-    <div style="color:#fff; max-width:980px; margin:0 auto; padding:40px; line-height:1.7; font-size:20px;">
-      <p style="margin-bottom:18px;"><b>Cette page se fermera automatiquement dans 20 secondes.</b></p>
-
-      <p style="margin-bottom:18px;">
-        Un fichier CSV avec vos réponses va se télécharger sur votre ordinateur. Vous pourrez déposer ce fichier sur le lien qui s'est ouvert dans le nouvel onglet. Vous pouvez signer "YC6" à l'endroit où votre nom est demandé afin de conserver votre anonymat.
-      </p>
-
-      <p style="margin-bottom:0;">
-        Vous allez maintenant être redirigé(e) vers SONA pour valider votre crédit de participation.
-      </p>
+    <div style="color:#fff; height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:40px;">
+      <div style="font-size:26px; line-height:1.8; max-width:800px;">
+        <p>Merci pour votre participation.</p>
+        <p>Vous allez être redirigé(e) sur SONA pour obtenir votre crédit dans 10 secondes.</p>
+        <p>Ne quittez pas la page.</p>
+      </div>
     </div>
   `,
   choices: 'NO_KEYS',
-  trial_duration: 20000,
-  data: { phase: 'credit_instructions' },
+  trial_duration: 10000,
+  data: { phase: 'final_slide' },
 };
 
 /* ----- Timeline finale ----- */
 jsPsych.run([
   preload,
-  fullscreenPromptSlide,  /* ✅ AJOUT : 5 secondes avant tout le reste */
+  fullscreenPromptSlide,
   informationSlide,
   consentSlide,
   sexeQuestion,
   introSlides,
   ...trialTimeline,
   debriefSlide,
-  uploadLinkSlide,
-  creditInstructionsSlide
+  finalSlide,
 ]);
-
-/* ==========================================================================
-   SECTION 6 — SAUVEGARDE CSV
-   -> téléchargement local en fin d’expérience (via downloadCsvLocal())
-   ========================================================================== */
 
 </script>
 </body>
 </html>
+
